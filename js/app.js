@@ -4,6 +4,7 @@ import { meView } from './views/me.js';
 import { placesView } from './views/places.js';
 import { homeView, addShop } from './views/home.js';
 import { whisperFab } from './whisper.js';
+import { badgeToast } from './views/me.js';
 import { wishView } from './views/wish.js';
 import { moreView, applyTheme, onAvatarFile } from './views/more.js';
 import { pushState, resyncPush } from './push.js';
@@ -171,6 +172,7 @@ function render() {
   lastRoute = routeKey;
   app.innerHTML = `${header()}<main class="screen${changed ? ' anim' : ''}">${body}</main>${whisperFab()}${nav()}`;
   window.scrollTo(0, y);
+  if (!document.querySelector('.sheet-bg')) badgeToast();
   if (fid) {
     const el = document.getElementById(fid);
     if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(sel[0], sel[1]); } catch {} }

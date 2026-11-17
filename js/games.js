@@ -215,6 +215,126 @@ function rps(box, done) {
   draw();
 }
 
+/* ---------- 8. camouflage: find the hidden chameleon ---------- */
+function camo(box, done) {
+  const rounds = [{ n: 4, d: 26 }, { n: 5, d: 18 }, { n: 5, d: 13 }, { n: 6, d: 10 }];
+  let r = 0, lives = 2, over = false;
+  box.innerHTML = `<p class="g-rule">Хамелеон замаскувався! Знайди листочок, що трохи інший за кольором. <b>4 раунди</b>, 2 помилки можна.</p>
+    <div class="g-timer"><i></i></div><div class="g-camo-h"><span class="g-lives"></span><span class="g-round"></span></div><div class="g-camo"></div>`;
+  const grid = box.querySelector('.g-camo');
+  const stop = timerBar(box, 25, () => { if (!over) { over = true; done(false); } });
+  const draw = () => {
+    const { n, d } = rounds[r];
+    const h = 80 + rnd(80), sat = 45 + rnd(20), lig = 42 + rnd(12);
+    const odd = rnd(n * n);
+    box.querySelector('.g-round').textContent = `Раунд ${r + 1} / ${rounds.length}`;
+    box.querySelector('.g-lives').textContent = '💚'.repeat(lives) + '🤍'.repeat(2 - lives);
+    grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    grid.innerHTML = Array.from({ length: n * n }, (_, i) => `<button class="g-leaf" data-i="${i}" style="background:hsl(${h} ${sat}% ${i === odd ? lig + d * 0.6 : lig}%)"></button>`).join('');
+    grid.querySelectorAll('.g-leaf').forEach((b) => (b.onclick = () => {
+      if (over) return;
+      if (+b.dataset.i === odd) {
+        b.textContent = '🦎'; b.classList.add('hit');
+        r++;
+        if (r >= rounds.length) { over = true; stop(); setTimeout(() => done(true), 450); } else setTimeout(draw, 350);
+      } else {
+        b.classList.add('miss'); lives--;
+        if (lives < 0) { over = true; stop(); grid.children[odd].textContent = '🦎'; setTimeout(() => done(false), 700); } else box.querySelector('.g-lives').textContent = '💚'.repeat(lives) + '🤍'.repeat(2 - lives);
+      }
+    }));
+  };
+  draw();
+}
+
+/* ---------- 9. tongue sniper ---------- */
+function tongue(box, done) {
+  const need = 3, tries = 5;
+  let hits = 0, used = 0, pos = 0, dir = 1, speed = 0.9, raf, busy = false;
+  box.innerHTML = `<p class="g-rule">Муха літає туди-сюди. Тисни «Язик!», коли вона в зеленій зоні. Треба <b>${need}</b> влучання з ${tries} спроб.</p>
+    <div class="g-track"><span class="g-zone"></span><span class="g-fly">🪰</span></div>
+    <div class="g-tries"></div><button class="btn block mt" data-shoot>👅 Язик!</button>`;
+  const fly = box.querySelector('.g-fly'), zone = box.querySelector('.g-zone'), info = box.querySelector('.g-tries');
+  let z0 = 0, z1 = 0;
+  const newZone = () => { const w = 22 - hits * 4; z0 = 10 + rnd(80 - w); z1 = z0 + w; zone.style.left = z0 + '%'; zone.style.width = w + '%'; };
+  const show = () => { info.textContent = `Влучань: ${hits} / ${need} · спроб лишилось: ${tries - used}`; };
+  newZone(); show();
+  const loop = () => {
+    if (!box.isConnected) return;
+    pos += dir * speed; if (pos > 96) { pos = 96; dir = -1; } if (pos < 0) { pos = 0; dir = 1; }
+    fly.style.left = pos + '%';
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+  box.querySelector('[data-shoot]').onclick = async () => {
+    if (busy) return; busy = true; used++;
+    const ok = pos + 2 >= z0 && pos + 2 <= z1;
+    zone.classList.add(ok ? 'ok' : 'bad');
+    if (ok) { hits++; fly.textContent = '✨'; speed += 0.45; }
+    show();
+    await wait(500);
+    zone.classList.remove('ok', 'bad'); fly.textContent = '🪰';
+    if (hits >= need) { cancelAnimationFrame(raf); done(true); return; }
+    if (used >= tries || tries - used < need - hits) { cancelAnimationFrame(raf); done(false); return; }
+    if (ok) newZone();
+    busy = false;
+  };
+}
+
+/* ---------- 10. make a word ---------- */
+const WORDS = ['ХВІСТ', 'ЯЗИК', 'КОЛІР', 'ЛИСТОК', 'СОНЦЕ', 'ОБІЙМИ', 'МРІЯ', 'КАВА', 'ТЕПЛО', 'ЗІРКА', 'ВЕСНА', 'ДОЩИК', 'ЯГОДА', 'МЕТЕЛИК', 'КВІТКА', 'ПОДАРУНОК', 'ПРОГУЛЯНКА', 'УСМІШКА', 'ПЛЕДИК', 'ВЕЧІР', 'МУЗИКА', 'ЗАКОХАНІ'];
+function anagram(box, done) {
+  const words = shuffle(WORDS.filter((w) => w.length <= 8)).slice(0, 2);
+  let wi = 0, over = false;
+  const stop = timerBar(box, 50, () => { if (!over) { over = true; done(false); } });
+  const draw = () => {
+    const word = words[wi];
+    let letters = shuffle([...word]); while (letters.join('') === word) letters = shuffle([...word]);
+    const picked = [];
+    const render = () => {
+      box.innerHTML = `<p class="g-rule">Склади слово з літер. Слово ${wi + 1} з 2 · ${word.length} літер</p><div class="g-timer"><i></i></div>
+        <div class="g-ans">${Array.from({ length: word.length }, (_, i) => `<span class="${picked[i] !== undefined ? 'on' : ''}" data-k="${i}">${picked[i] !== undefined ? letters[picked[i]] : ''}</span>`).join('')}</div>
+        <div class="g-letters">${letters.map((l, i) => `<button class="g-key" data-i="${i}" ${picked.includes(i) ? 'disabled' : ''}>${l}</button>`).join('')}</div>
+        <div class="row gap mt"><button class="btn sm ghost" data-undo>⌫ Стерти</button><span class="grow"></span><button class="btn sm ghost" data-hint>💡 Підказка</button></div>`;
+      box.querySelectorAll('.g-letters .g-key').forEach((b) => (b.onclick = () => {
+        if (over) return;
+        picked.push(+b.dataset.i);
+        if (picked.length === word.length) {
+          const ok = picked.map((i) => letters[i]).join('') === word;
+          if (ok) { wi++; render(); box.querySelector('.g-ans').classList.add('ok'); if (wi >= words.length) { over = true; stop(); setTimeout(() => done(true), 600); } else setTimeout(draw, 600); return; }
+          render(); box.querySelector('.g-ans').classList.add('bad'); setTimeout(() => { picked.length = 0; render(); }, 500); return;
+        }
+        render();
+      }));
+      box.querySelector('[data-undo]').onclick = () => { picked.pop(); render(); };
+      box.querySelector('[data-hint]').onclick = (e) => { e.currentTarget.textContent = `💡 Починається на «${word[0]}»`; e.currentTarget.disabled = true; };
+    };
+    render();
+  };
+  draw();
+}
+
+/* ---------- 11. colour muddle (Stroop) ---------- */
+function stroop(box, done) {
+  const C = [['ЧЕРВОНИЙ', '#E5484D'], ['ЗЕЛЕНИЙ', '#30A46C'], ['СИНІЙ', '#3E7BFA'], ['ЖОВТИЙ', '#F5B800']];
+  const need = 8;
+  let got = 0, miss = 0, over = false;
+  box.innerHTML = `<p class="g-rule">Хамелеон плутає кольори! Тисни на <b>колір літер</b>, а не на те, що написано. Треба ${need} правильних, помилок — не більше 2.</p>
+    <div class="g-timer"><i></i></div><div class="g-stroop"></div><div class="g-score-l"></div>
+    <div class="grid2 mt">${C.map(([n, col], i) => `<button class="btn secondary g-col" data-i="${i}"><span class="dot" style="background:${col}"></span>${n.toLowerCase()}</button>`).join('')}</div>`;
+  const word = box.querySelector('.g-stroop'), sc = box.querySelector('.g-score-l');
+  let ink = 0;
+  const next = () => { const w = rnd(4); do { ink = rnd(4); } while (ink === w && Math.random() < 0.85); word.textContent = C[w][0]; word.style.color = C[ink][1]; sc.textContent = `✅ ${got} / ${need} · ❌ ${miss} / 2`; };
+  const stop = timerBar(box, 22, () => { if (!over) { over = true; done(false); } });
+  box.querySelectorAll('.g-col').forEach((b) => (b.onclick = () => {
+    if (over) return;
+    if (+b.dataset.i === ink) got++; else { miss++; word.classList.add('shake'); setTimeout(() => word.classList.remove('shake'), 300); }
+    if (got >= need) { over = true; stop(); sc.textContent = `✅ ${got} / ${need}`; setTimeout(() => done(true), 400); return; }
+    if (miss > 2) { over = true; stop(); setTimeout(() => done(false), 400); return; }
+    next();
+  }));
+  next();
+}
+
 export const GAMES = [
   { id: 'fish', title: 'Лови мушок', icon: '🪰', run: fish },
   { id: 'shells', title: 'Де сонечко?', icon: '🍃', run: shells },
@@ -223,6 +343,10 @@ export const GAMES = [
   { id: 'simon', title: 'Повтори за хамелеоном', icon: '🦎', run: simon },
   { id: 'quiz', title: 'Правда чи міф?', icon: '🤔', run: quiz },
   { id: 'rps', title: 'Камінь, ножиці, папір', icon: '✌️', run: rps },
+  { id: 'camo', title: 'Маскування', icon: '🦎', run: camo },
+  { id: 'tongue', title: 'Язик-снайпер', icon: '👅', run: tongue },
+  { id: 'anagram', title: 'Склади слово', icon: '🔤', run: anagram },
+  { id: 'stroop', title: 'Кольорова плутанина', icon: '🎨', run: stroop },
 ];
 
 // Random game, avoiding the last few played on this device.

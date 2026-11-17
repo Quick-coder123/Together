@@ -102,57 +102,106 @@ export const icon = (name, size = 22, extra = '') =>
   `<svg class="ico ${extra}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name] || ''}</svg>`;
 
 /* ---------------- chameleon mascot ---------------- */
-// Colour follows the mood: great → green, ok → sunny yellow, sad → blue, love → pink.
+// Colour follows the mood: great → green, ok → sunny yellow, sad → blue, love → pink — unless a skin is chosen.
+// [main, dark, light, accent]
 export const PALETTE = {
-  green: ['#6CC46A', '#3E9A4F', '#DDF5CF'],
-  yellow: ['#F2C14E', '#C9922B', '#FFF1C9'],
-  blue: ['#6FA8DC', '#3F78B5', '#DCEBFA'],
-  pink: ['#F28DB2', '#C95A86', '#FFE0EC'],
-  grey: ['#9FB3A3', '#6F8475', '#E3ECE5'],
-  violet: ['#B48CF0', '#7E57C2', '#EFE4FF'],
-  mint: ['#6FD3BC', '#2F9C84', '#DDF7F0'],
+  green: ['#6CC46A', '#3E9A4F', '#DDF5CF', '#F2D45C'],
+  yellow: ['#F2C14E', '#C9922B', '#FFF1C9', '#E8774B'],
+  blue: ['#6FA8DC', '#3F78B5', '#DCEBFA', '#9BD5F2'],
+  pink: ['#F28DB2', '#C95A86', '#FFE0EC', '#FFD36E'],
+  grey: ['#9FB3A3', '#6F8475', '#E3ECE5', '#C9D4CB'],
+  violet: ['#B48CF0', '#7E57C2', '#EFE4FF', '#F2B5E0'],
+  mint: ['#6FD3BC', '#2F9C84', '#DDF7F0', '#F7D774'],
+  emerald: ['#2FBF71', '#1B8A4E', '#C9F2DA', '#FFD166'],
+  turquoise: ['#3CC8D8', '#1C8C9E', '#D3F5F8', '#FF9F6E'],
+  coral: ['#FF8A70', '#D2563E', '#FFE2DA', '#FFD36E'],
+  golden: ['#F4C542', '#B8860B', '#FFF4CC', '#E8774B'],
+  night: ['#4B5DBA', '#2C3780', '#D7DCF7', '#9FE8FF'],
+  rainbow: ['url(#RB)', '#7E57C2', '#FFF4CC', '#FFFFFF'],
 };
-// face: happy | ok | sad | love | sleep ; pose: sit | wave ; water (kept name) → branch with leaves
-export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color, branch: showBranch = true } = {}) {
-  const col = color || { love: 'pink', sad: 'blue', ok: 'yellow' }[face] || 'green';
-  const [c, d, l] = PALETTE[col] || PALETTE.green;
-  const ink = '#2B2420', blush = '#F49A9A';
-  const eye = (cx, cy) => {
-    const ring = `<circle cx="${cx}" cy="${cy}" r="21" fill="${c}" stroke="${d}" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="13" fill="#fff"/>`;
-    if (face === 'love') return ring + `<path d="M${cx} ${cy + 7}l-7 -7a4.2 4.2 0 1 1 7 -4.5a4.2 4.2 0 1 1 7 4.5z" fill="#E6566E"/>`;
-    if (face === 'sleep') return ring + `<path d="M${cx - 13} ${cy}h26v-14h-26z" fill="${c}"/><path d="M${cx - 10} ${cy + 1}q10 7 20 0" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-    if (face === 'sad') return ring + `<path d="M${cx - 14} ${cy - 2}h28v-12h-28z" fill="${c}"/><path d="M${cx - 14} ${cy - 2}h28" stroke="${d}" stroke-width="3"/><circle cx="${cx}" cy="${cy + 4}" r="5.5" fill="${ink}"/>`;
-    const r = face === 'ok' ? 5.5 : 6.5;
-    return ring + `<circle cx="${cx + (cx < 100 ? 2 : -2)}" cy="${cy + 1}" r="${r}" fill="${ink}"/><circle cx="${cx + (cx < 100 ? 4 : 0)}" cy="${cy - 2}" r="2.2" fill="#fff"/>`;
-  };
+let otterSeq = 0;
+// look = { skin, pattern, hat, eyes, neck, back, hand } (emoji for accessories, keys for skin/pattern)
+// face: happy | ok | sad | love | sleep ; pose: sit | wave ; water → leafy branch
+export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color, branch: showBranch = true, look = null } = {}) {
+  const id = 'ch' + (++otterSeq);
+  const skin = look?.skin && look.skin !== 'mood' && PALETTE[look.skin] ? look.skin : null;
+  const col = skin || color || { love: 'pink', sad: 'blue', ok: 'yellow' }[face] || 'green';
+  let [c, d, l, acc] = PALETTE[col] || PALETTE.green;
+  const ink = '#2B2420';
+  const rb = col === 'rainbow' ? `<linearGradient id="RB${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#FF7B9C"/><stop offset=".3" stop-color="#FFC857"/><stop offset=".55" stop-color="#6CC46A"/><stop offset=".8" stop-color="#6FA8DC"/><stop offset="1" stop-color="#B48CF0"/></linearGradient>` : '';
+  if (col === 'rainbow') c = `url(#RB${id})`;
+  const pattern = look?.pattern || 'spots';
+  const hat = look?.hat || (outfit && !['🕶️', '🧣'].includes(outfit) ? outfit : '');
+  const eyesItem = look?.eyes || (outfit === '🕶️' ? outfit : '');
+  const neck = look?.neck || (outfit === '🧣' ? outfit : '');
+  const back = look?.back || '', hand = look?.hand || '';
+
+  // body silhouette (used for fill and as clip for patterns)
+  const BODY = 'M56 128 C52 98 84 80 118 84 C140 87 152 104 148 122 C143 144 108 152 84 149 C68 147 58 140 56 128 Z';
+  const pat = {
+    spots: `<g fill="${d}" opacity=".45"><circle cx="84" cy="106" r="5"/><circle cx="104" cy="98" r="3.5"/><circle cx="122" cy="104" r="4.5"/><circle cx="96" cy="122" r="3"/><circle cx="72" cy="120" r="3.5"/><circle cx="132" cy="124" r="3"/></g>`,
+    stripes: `<g stroke="${d}" stroke-width="5" opacity=".42" stroke-linecap="round"><path d="M74 88 L70 150"/><path d="M92 82 L88 152"/><path d="M110 82 L106 152"/><path d="M128 86 L124 150"/></g>`,
+    stars: `<g fill="${acc}" opacity=".9"><path d="M86 104l2.4 5 5.4.6-4 3.7 1.1 5.3-4.9-2.7-4.9 2.7 1.1-5.3-4-3.7 5.4-.6z"/><path d="M118 98l1.8 3.8 4.1.4-3 2.8.8 4-3.7-2-3.7 2 .8-4-3-2.8 4.1-.4z"/><path d="M106 124l1.6 3.3 3.6.4-2.7 2.5.8 3.6-3.3-1.8-3.3 1.8.8-3.6-2.7-2.5 3.6-.4z"/></g>`,
+    hearts: `<g fill="${acc === '#FFFFFF' ? '#FF7B9C' : '#FF7B9C'}" opacity=".85"><path d="M88 112l-6-6a3.6 3.6 0 1 1 6-3.8a3.6 3.6 0 1 1 6 3.8z"/><path d="M120 106l-5-5a3 3 0 1 1 5-3.2a3 3 0 1 1 5 3.2z"/><path d="M104 132l-4.5-4.5a2.8 2.8 0 1 1 4.5-3a2.8 2.8 0 1 1 4.5 3z"/></g>`,
+    sparkles: `<g fill="#fff" opacity=".9"><circle cx="80" cy="110" r="2"/><circle cx="96" cy="96" r="1.6"/><circle cx="112" cy="116" r="2.2"/><circle cx="126" cy="100" r="1.5"/><circle cx="90" cy="130" r="1.8"/><path d="M104 102l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/></g>`,
+    none: '',
+  }[pattern] ?? '';
+
+  // turret eye
+  const ex = 160, ey = 90;
+  let eyeInner;
+  if (face === 'sleep') eyeInner = `<path d="M${ex - 9} ${ey + 1} q9 7 18 0" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  else if (face === 'love') eyeInner = `<circle cx="${ex}" cy="${ey}" r="9.5" fill="#fff"/><path d="M${ex} ${ey + 6}l-6-6a3.7 3.7 0 1 1 6-4a3.7 3.7 0 1 1 6 4z" fill="#E6566E"/>`;
+  else {
+    const pr = face === 'ok' ? 4.2 : 5;
+    eyeInner = `<circle cx="${ex}" cy="${ey}" r="9.5" fill="#fff"/><g class="pupil"><circle cx="${ex + 2.5}" cy="${ey + 0.5}" r="${pr}" fill="${ink}"/><circle cx="${ex + 4}" cy="${ey - 1.5}" r="1.6" fill="#fff"/></g>`;
+    if (face === 'sad') eyeInner += `<path d="M${ex - 13} ${ey - 4} L${ex + 13} ${ey - 9} L${ex + 13} ${ey - 15} L${ex - 13} ${ey - 15}z" fill="${c}"/><path d="M${ex - 12} ${ey - 4} L${ex + 12} ${ey - 9}" stroke="${d}" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+  const eye = `<g class="eyes"><circle cx="${ex}" cy="${ey}" r="16.5" fill="${c}" stroke="${d}" stroke-width="2.5"/>
+    <circle cx="${ex}" cy="${ey}" r="12.5" fill="none" stroke="${d}" stroke-width="1.6" opacity=".55" stroke-dasharray="2.5 3"/>${eyeInner}</g>`;
   const mouth = face === 'sad'
-    ? `<path d="M84 122 Q100 112 116 122" stroke="${ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M58 100q-3 8 1 11q4-3 1-11z" fill="#7EC8E3"/>`
+    ? `<path d="M186 112 C176 108 164 110 154 116" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M150 104q-3 7 0 9q4-2 0-9z" fill="#7EC8E3"/>`
     : face === 'ok'
-      ? `<path d="M84 116 Q100 124 116 116" stroke="${ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
-      : `<path d="M78 112 Q100 132 122 112" stroke="${ink}" stroke-width="3.5" fill="${face === 'sleep' ? 'none' : '#E77B83'}" stroke-linecap="round"/>`;
-  const arms = pose === 'wave'
-    ? `<path d="M64 140 q-20 -14 -16 -40" stroke="${c}" stroke-width="13" stroke-linecap="round" fill="none"/><circle cx="48" cy="98" r="8" fill="${d}"/><ellipse cx="126" cy="170" rx="10" ry="7" fill="${d}"/>`
-    : `<ellipse cx="76" cy="170" rx="10" ry="7" fill="${d}"/><ellipse cx="124" cy="170" rx="10" ry="7" fill="${d}"/>`;
+      ? `<path d="M187 108 C178 113 166 114 154 112" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M187 106 C180 118 164 121 152 112" stroke="${ink}" stroke-width="3" fill="${face === 'sleep' ? 'none' : '#E77B83'}" stroke-linecap="round"/>`;
+  const foot = (x, y) => `<g fill="${d}"><ellipse cx="${x - 5}" cy="${y}" rx="6" ry="4.5"/><ellipse cx="${x + 5}" cy="${y + 1}" rx="6" ry="4.5"/></g>`;
+  const frontLeg = pose === 'wave'
+    ? `<path d="M126 134 C138 136 148 134 158 128" stroke="${c}" stroke-width="10" fill="none" stroke-linecap="round"/><g fill="${d}"><ellipse cx="161" cy="122" rx="4" ry="6" transform="rotate(-10 161 122)"/><ellipse cx="166" cy="129" rx="4" ry="6" transform="rotate(60 166 129)"/></g>`
+    : `<path d="M126 136 C130 148 132 156 134 164" stroke="${c}" stroke-width="10" fill="none" stroke-linecap="round"/>${foot(134, 166)}`;
+  const backLeg = `<path d="M78 138 C74 150 72 156 72 164" stroke="${c}" stroke-width="11" fill="none" stroke-linecap="round"/>${foot(72, 166)}`;
   const branch = water
-    ? `<path d="M-20 178 Q60 168 110 176 T230 172" stroke="#7A5233" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M30 172q-14 -18 6 -26q8 14 -6 26z" fill="#4FA35A"/><path d="M168 170q18 -16 4 -28q-14 10 -4 28z" fill="#4FA35A"/>`
-    : `<path d="M30 176 Q100 168 170 176" stroke="#7A5233" stroke-width="9" fill="none" stroke-linecap="round"/>`;
-  return `<svg class="otter mascot ${bob ? 'bob' : ''}" width="${size}" height="${size}" viewBox="0 0 200 200" aria-hidden="true">
-    <path d="M132 164 q40 6 42 -22 q2 -24 -20 -24 q-17 0 -17 15 q0 12 12 12 q8 0 8 -7" stroke="${c}" stroke-width="12" fill="none" stroke-linecap="round"/>
-    <path d="M132 164 q40 6 42 -22 q2 -24 -20 -24 q-17 0 -17 15 q0 12 12 12 q8 0 8 -7" stroke="${d}" stroke-width="2.5" fill="none" stroke-dasharray="3 9" stroke-linecap="round"/>
-    <ellipse cx="100" cy="150" rx="40" ry="32" fill="${c}"/>
-    <ellipse cx="100" cy="158" rx="23" ry="21" fill="${l}"/>
-    <g fill="${d}" opacity=".55"><circle cx="72" cy="142" r="4"/><circle cx="128" cy="140" r="4"/><circle cx="80" cy="162" r="3"/><circle cx="121" cy="160" r="3"/></g>
-    ${showBranch ? branch : ''}
-    ${arms}
-    <path d="M70 70 Q100 26 130 70 Z" fill="${d}"/>
-    <path d="M80 66 Q100 38 120 66" stroke="${c}" stroke-width="4" fill="none" opacity=".7"/>
-    <ellipse cx="100" cy="98" rx="50" ry="38" fill="${c}"/>
-    <ellipse cx="100" cy="112" rx="32" ry="16" fill="${l}" opacity=".7"/>
-    <ellipse cx="70" cy="114" rx="8" ry="5" fill="${blush}" opacity=".7"/><ellipse cx="130" cy="114" rx="8" ry="5" fill="${blush}" opacity=".7"/>
-    <g class="eyes">${eye(64, 86)}${eye(136, 86)}</g>
-    <g fill="${d}"><circle cx="94" cy="104" r="1.8"/><circle cx="106" cy="104" r="1.8"/></g>
+    ? `<path d="M-10 170 Q70 162 120 170 T214 166" stroke="#7A5233" stroke-width="11" fill="none" stroke-linecap="round"/><path d="M24 166q-14 -18 6 -26q8 14 -6 26z" fill="#4FA35A"/><path d="M176 164q18 -16 4 -28q-14 10 -4 28z" fill="#4FA35A"/>`
+    : `<path d="M14 170 Q100 162 192 170" stroke="#7A5233" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M180 168q14 -12 2 -22q-10 9 -2 22z" fill="#4FA35A"/>`;
+  const crest = Array.from({ length: 7 }, (_, i) => { const t = i / 6; const x = 66 + t * 64, y = 92 - Math.sin(t * Math.PI) * 10 + t * -2; return `<path d="M${x - 5} ${y + 4} L${x} ${y - 5} L${x + 5} ${y + 4}z"/>`; }).join('');
+  const em = (e, x, y, fs, rot = 0) => (e ? `<text x="${x}" y="${y}" font-size="${fs}" text-anchor="middle" dominant-baseline="central" transform="rotate(${rot} ${x} ${y})">${e}</text>` : '');
+
+  const tight = size <= 60; // small icons: crop the empty space around the chameleon
+  return `<svg class="otter mascot ${bob ? 'bob' : ''}" width="${size}" height="${tight ? Math.round(size * 0.82) : size}" viewBox="${tight ? '14 34 182 150' : '0 0 200 200'}" aria-hidden="true">
+    <defs>${rb}<clipPath id="B${id}"><path d="${BODY}"/></clipPath></defs>
+    ${showBranch && water ? branch : ''}
+    <path class="tail" d="M60 132 C34 134 22 152 30 166 C38 180 62 176 62 160 C62 148 46 146 44 156 C43 163 52 165 54 159" stroke="${c}" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <path d="M60 132 C34 134 22 152 30 166 C38 180 62 176 62 160 C62 148 46 146 44 156" stroke="${d}" stroke-width="2" fill="none" stroke-dasharray="2 8" stroke-linecap="round" opacity=".7"/>
+    ${showBranch && !water ? branch : ''}
+    ${backLeg}
+    <g fill="${d}">${crest}</g>
+    <path d="${BODY}" fill="${c}"/>
+    <g clip-path="url(#B${id})"><path d="M50 132 C80 146 120 146 152 124 L152 160 L50 160z" fill="${l}" opacity=".8"/>${pat}
+      <path d="M62 116 C88 122 118 118 146 108" stroke="${l}" stroke-width="3" fill="none" opacity=".55" stroke-dasharray="1 7" stroke-linecap="round"/></g>
+    <path d="M140 92 C150 66 170 60 184 74 C194 84 194 104 186 112 C178 122 156 124 142 118 C134 112 134 100 140 92 Z" fill="${c}"/>
+    <path d="M140 92 C142 68 150 50 164 48 C162 58 158 70 156 80 Z" fill="${d}"/>
+    <path d="M144 88 C147 70 153 58 161 54" stroke="${c}" stroke-width="3" fill="none" opacity=".6" stroke-linecap="round"/>
+    <path d="M146 116 C160 124 178 118 186 110 C182 122 160 126 146 116z" fill="${l}" opacity=".85"/>
+    ${em(back, 100, 86, 30, -6)}
+    ${neck ? em(neck, 142, 122, 30, -10) : ''}
+    ${eye}
+    <circle cx="185" cy="94" r="1.6" fill="${d}"/>
+    <ellipse cx="170" cy="111" rx="6" ry="3.5" fill="#F49A9A" opacity="${face === 'love' ? 0.95 : 0.6}"/>
     ${mouth}
-    ${outfit ? `<text x="${outfit === '🕶️' ? 100 : outfit === '🧣' ? 100 : 100}" y="${outfit === '🕶️' ? 98 : outfit === '🧣' ? 142 : 48}" font-size="${outfit === '🕶️' ? 50 : 36}" text-anchor="middle">${outfit}</text>` : ''}
+    ${frontLeg}
+    ${hand ? em(hand, pose === 'wave' ? 170 : 146, pose === 'wave' ? 132 : 150, 26, -8) : ''}
+    ${eyesItem ? em(eyesItem, ex + 2, ey + 1, 34, 0) : ''}
+    ${hat ? em(hat, 160, 50, 36, 10) : ''}
+    ${face === 'sleep' ? '<text x="182" y="54" font-size="16" fill="#9BB">z</text><text x="192" y="40" font-size="12" fill="#9BB">z</text>' : ''}
   </svg>`;
 }
 export const mascot = otter;

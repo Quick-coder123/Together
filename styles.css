@@ -718,7 +718,7 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .cook-scene { position: relative; width: min(300px, 86vw); height: 210px; margin: 6px auto 0; }
 .cook-buddy { position: absolute; left: 0; bottom: 0; width: 110px; animation: chefSway 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
 .cook-buddy svg.otter { width: clamp(84px, 28vw, 110px); height: auto; display: block; }
-.chef-hat { position: absolute; width: 46%; left: 27%; top: -9%; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+.chef-hat { position: absolute; width: 34%; left: 63%; top: 2%; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
 @keyframes chefSway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-3px); } }
 .cook-pot { position: absolute; right: 0; bottom: 6px; width: 62%; }
 .cook-pot svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
@@ -770,8 +770,8 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 /* ---------- Нишпорка (wishlist helper) ---------- */
 .ny { position: relative; display: inline-block; width: var(--s); line-height: 0; }
 .ny svg.otter { width: var(--s); height: auto; display: block; }
-.ny-cap { position: absolute; width: 50%; left: 25%; top: -6%; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
-.ny-glass { position: absolute; width: 44%; right: -12%; bottom: 14%; z-index: 3; transform-origin: 80% 80%; }
+.ny-cap { position: absolute; width: 36%; left: 62%; top: 9%; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+.ny-glass { position: absolute; width: 40%; right: -22%; bottom: 30%; z-index: 3; transform-origin: 80% 80%; }
 .ny-hero { display: flex; align-items: center; gap: 14px; padding: 4px 0 12px; }
 .ny-hero .grow { min-width: 0; }
 .ny-hero b { font-size: 17px; }
@@ -896,3 +896,64 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .go-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 11px; border-radius: 12px; background: var(--card2); color: var(--accent-t, #E7B98A); font-weight: 700; font-size: 13.5px; text-decoration: none; }
 .go-btn:active { transform: scale(.96); }
 @media (max-width: 360px) { .go-btn span { display: none; } .go-btn { padding: 0 9px; } }
+
+/* ---------- pet: scenes, wardrobe, badges ---------- */
+.pet-scene .pet-otter svg.otter { width: clamp(150px, 46vw, 180px); height: auto; }
+.pet-scene { --scene: #6E9F72; }
+.scene-forest { background: radial-gradient(70% 60% at 50% 55%, #A9D4A0, #6E9F72) !important; }
+.scene-meadow { background: linear-gradient(180deg, #BFE6FF 0%, #DDF3C8 55%, #9CCB78 100%) !important; }
+.scene-beach { background: linear-gradient(180deg, #8ED8F8 0%, #C9EEFF 45%, #F8E3B0 70%, #EBC98A 100%) !important; }
+.scene-sakura { background: radial-gradient(80% 70% at 50% 40%, #FFE3EE, #F7B6CF) !important; }
+.scene-snow { background: linear-gradient(180deg, #CFE3F5 0%, #EEF6FD 60%, #FFFFFF 100%) !important; }
+.scene-sunset { background: linear-gradient(180deg, #FF9A6B 0%, #FFC27A 45%, #C87BB0 100%) !important; }
+.scene-night { background: radial-gradient(90% 80% at 70% 20%, #3B4A8C, #141A3A) !important; }
+.scene-space { background: radial-gradient(60% 50% at 30% 30%, #5B3A9E, #0C0A1F 70%) !important; }
+.scene-aurora { background: linear-gradient(170deg, #0F2A3A 0%, #1E6F6A 35%, #6BE3A8 55%, #8F6BE3 75%, #12142E 100%) !important; }
+.pet-scene .deco { position: absolute; inset: 0; pointer-events: none; }
+.pet-scene .deco i { position: absolute; font-style: normal; font-size: 22px; opacity: .85; animation: decoFloat 6s ease-in-out infinite; animation-delay: calc(var(--i) * -2s); }
+.pet-scene .deco i:nth-child(1) { left: 8%; top: 64%; } .pet-scene .deco i:nth-child(2) { left: 22%; top: 22%; font-size: 18px; } .pet-scene .deco i:nth-child(3) { left: 80%; top: 72%; font-size: 18px; }
+@keyframes decoFloat { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(6deg); } }
+.pet-scene.hungry .pet-otter { filter: saturate(.5); }
+.hungry-tag { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.45); color: #fff; }
+.wardrobe.third { top: 126px; font-size: 19px; }
+.wardrobe .wd-n { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+.wd-preview { height: 190px !important; margin: 4px 0 10px !important; cursor: default; }
+.wd-preview svg.otter { width: 160px; height: auto; }
+.wd-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.wd-tabs::-webkit-scrollbar { display: none; }
+.wd-tabs .pill { flex: none; }
+.wardrobe-grid .wd { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border-radius: 16px; background: var(--card2); border: 2px solid transparent; font-size: 12.5px; line-height: 1.2; min-height: 92px; }
+.wardrobe-grid .wd.on { border-color: var(--accent); }
+.wardrobe-grid .wd.locked { opacity: .5; }
+.wardrobe-grid .wd .wd-e { font-size: 28px; line-height: 1.1; }
+.wardrobe-grid .wd .xs { font-size: 10.5px; }
+.wardrobe-grid .sw { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,.3); }
+.badges { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.bdg { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: var(--card2); opacity: .6; }
+.bdg.got { opacity: 1; border: 1.5px solid rgba(242, 193, 78, .45); }
+.bdg .grow { min-width: 0; line-height: 1.3; }
+.bdg-e { font-size: 28px; flex: none; width: 36px; text-align: center; }
+.bdg-r { text-align: right; font-weight: 800; color: #F2C14E; flex: none; }
+.bdg-big { font-size: 64px; animation: moodPop .6s cubic-bezier(.2, 1.6, .4, 1); }
+.team-box { padding: 10px 12px; border-radius: 14px; background: var(--card2); font-size: 14px; }
+/* new games */
+.g-camo-h { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; }
+.g-camo { display: grid; gap: 6px; }
+.g-leaf { aspect-ratio: 1; border-radius: 40% 10% 40% 10%; border: 0; font-size: 22px; transition: transform .15s; }
+.g-leaf:active { transform: scale(.92); }
+.g-leaf.hit { animation: moodPop .4s; } .g-leaf.miss { opacity: .35; }
+.g-track { position: relative; height: 70px; border-radius: 18px; background: linear-gradient(#5D8FB0, #2F5D7A); overflow: hidden; margin-top: 8px; }
+.g-zone { position: absolute; top: 0; bottom: 0; background: rgba(110, 220, 140, .35); border-left: 2px solid #8EF0A8; border-right: 2px solid #8EF0A8; transition: left .3s, width .3s; }
+.g-zone.ok { background: rgba(110, 220, 140, .8); } .g-zone.bad { background: rgba(240, 90, 110, .6); }
+.g-fly { position: absolute; top: 50%; transform: translate(-10%, -50%); font-size: 30px; }
+.g-tries { margin-top: 10px; text-align: center; font-weight: 700; }
+.g-ans { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; }
+.g-ans span { width: 34px; height: 42px; border-radius: 10px; border-bottom: 3px solid var(--line2, #555); background: var(--card2); display: grid; place-items: center; font-size: 22px; font-weight: 800; }
+.g-ans.ok span { background: rgba(95, 185, 138, .35); } .g-ans.bad span { background: rgba(240, 90, 110, .3); }
+.g-letters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.g-letters .g-key { width: 46px; height: 50px; font-size: 22px; font-weight: 800; border-radius: 12px; background: var(--card2); }
+.g-letters .g-key:disabled { opacity: .25; }
+.g-stroop { text-align: center; font-size: clamp(30px, 10vw, 42px); font-weight: 900; letter-spacing: 1px; margin: 18px 0 6px; }
+.g-stroop.shake { animation: wiggle .1s 3; }
+.g-score-l { text-align: center; font-weight: 700; color: var(--muted); }
+.g-col { gap: 8px; } .g-col .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }

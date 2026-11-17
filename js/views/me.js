@@ -1,7 +1,7 @@
 // «Ми» — the main screen.
 import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, LS } from '../store.js';
 import { esc, icon, otter, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
-import { levelInfo, streakOf, tasksFor, TASKS, OUTFITS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY } from '/lib/core.js';
+import { levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
 import { GAMES, pickGame } from '../games.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
 
@@ -69,6 +69,13 @@ function stepsCard(r, pid) {
   </section>`;
 }
 
+const em = (slot, id) => itemOf(slot, id)?.e || '';
+function petSvg(look, face, color, size, extra = {}) {
+  const fixed = look.skin !== 'mood' ? look.skin : null;
+  return otter({ face, color, size, bob: true, look: { skin: fixed || undefined, pattern: look.pattern, hat: em('hat', look.hat), eyes: em('eyes', look.eyes), neck: em('neck', look.neck), back: em('back', look.back), hand: em('hand', look.hand) }, ...extra });
+}
+const DECO = { forest: '🌿 🍃', meadow: '🌼 🌷 🐝', beach: '☀️ 🌊 🐚', sakura: '🌸 🌸 🌸', snow: '❄️ ⛄ ❄️', sunset: '🌅 🕊️', night: '🌙 ✨ ⭐', space: '🪐 ✨ 🌠', aurora: '✨ 🌌 ✨' };
+const sceneDeco = (sc) => `<span class="deco" aria-hidden="true">${(DECO[sc] || '').split(' ').map((e, i) => `<i style="--i:${i}">${e}</i>`).join('')}</span>`;
 function petCard(r, t) {
   const pet = r.pet;
   const lv = levelInfo(pet.xp);
@@ -76,9 +83,10 @@ function petCard(r, t) {
   const fed = pet.lastFed === t;
   const myMood = r.moods[S.me.id];
   const todayMood = myMood?.date === t ? myMood.value : null;
+  const hungry = isHungry(pet, t);
   const face = !fed ? 'sad' : todayMood === 'great' ? 'love' : todayMood === 'sad' ? 'ok' : 'happy';
   const color = !fed ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
-  const outfit = OUTFITS.find((o) => o.id === pet.outfit)?.emoji || '';
+  const look = lookOf(pet);
   const tasks = tasksFor(t);
   const claimed = r.daily?.[t]?.[S.me.id]?.claimed || {};
   const doneN = tasks.filter((k) => claimed[k]).length;
@@ -92,11 +100,13 @@ function petCard(r, t) {
       <button class="icon-btn sm" data-a="petHelp" aria-label="Як це працює">${icon('help', 20)}</button>
     </div>
     <div class="muted small">${esc(pet.name)} · ${lv.stage} · рівень ${lv.level}</div>
-    <div class="pet-scene" id="stage" data-a="play">
+    <div class="pet-scene scene-${look.scene} ${hungry ? 'hungry' : ''}" id="stage" data-a="play">${sceneDeco(look.scene)}
       ${fed ? `<span class="chip ok">${icon('check', 14)} Нагодований</span>` : `<button class="chip warn" data-a="feed">🦗 Нагодувати</button>`}
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
       <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🍃<span class="wd-n">${found}</span></button>
-      <div class="pet-otter">${otter({ face, outfit, color, size: 150, bob: true })}</div>
+      <button class="wardrobe third" data-a="badges" aria-label="Нагороди">🏅<span class="wd-n">${Object.keys(pet.badges || {}).length}</span></button>
+      <div class="pet-otter">${petSvg(look, face, color, 170)}</div>
+      ${hungry && pet.lastFed ? '<span class="hungry-tag">Голодний — ігри без досвіду</span>' : ''}
       <span class="tap-pill">🎮 ГРАТИ</span>
     </div>
     <div class="pet-foot">
@@ -223,7 +233,7 @@ function moodBurst(btn, emojis) {
 }
 on('feed', async (el, e) => {
   e.stopPropagation();
-  if (await act({ type: 'feed' })) { floaty('🦗'); setTimeout(() => floaty('💕'), 300); toast('Ням! +10 досвіду'); }
+  if (await act({ type: 'feed' })) { floaty('🦗'); setTimeout(() => floaty('💕'), 300); toast(`Ням! +${XP.feed} досвіду${S.room.pet.streak % 7 === 0 ? ` і +${XP.streak7} за тиждень турботи 🔥` : ''}`); }
 });
 
 /* ----- games ----- */
@@ -249,7 +259,7 @@ function gameSheet(game) {
           <div class="muted small">Хамелеон вистрілив язиком і впіймав…</div>
           <div class="g-find">${f.e}</div><h3 class="h3">${f.name}</h3>
           <div class="rar r-${f.r}">${RARITY[f.r]}${count === 1 ? ' · новинка в колекції!' : ` · уже ×${count}`}</div>
-          <div class="small muted mt">${lf.xp ? `+${lf.xp} досвіду улюбленцю` : 'Досвід за ігри на сьогодні вже зібрано, але знахідки є завжди 😉'}</div></div>
+          <div class="small muted mt">${lf.xp ? `+${lf.xp} досвіду улюбленцю` : lf.hungry ? '🦗 Хамелеон голодний — погодуй його, щоб ігри давали досвід' : 'Досвід за ігри на сьогодні вже зібрано, але знахідки є завжди 😉'}</div></div>
           <div class="grid2 mt"><button class="btn" data-again>🎮 Ще гра</button><button class="btn secondary" data-coll>🍃 Колекція</button></div>`
         : `<div class="g-reward"><div class="g-find">${otter({ face: 'sad', size: 110 })}</div><h3 class="h3">${win ? 'Перемога!' : 'Майже вийшло!'}</h3>
           <p class="muted">${win ? 'Не вдалося звʼязатися із сервером — знахідку не збережено.' : 'Хамелеон вірить у тебе. Спробуєш ще?'}</p></div>
@@ -310,38 +320,73 @@ on('petName', () => openForm({
 
 on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за улюбленцем</h3>
   <div class="prose">
-  <p>🦗 <b>Годуйте щодня.</b> Один з вас годує улюбленця раз на день — так росте вогник 🔥 (дні поспіль).</p>
-  <p>🎮 <b>Грайте.</b> Торкніться хамелеона — щоразу випадає інша міні-гра: лови мушок, сонечко під листочком, памʼять, бульбашки, «повтори за хамелеоном», правда чи міф, камінь-ножиці-папір.</p>
-  <p>🍃 <b>Збирайте знахідки.</b> За кожну перемогу хамелеон приносить щось із лісу: від листочка до легендарного шматочка веселки. Колекція спільна на двох.</p>
-  <p>🎨 <b>Колір.</b> Хамелеон змінює колір під твій настрій: зелений — відмінно, жовтий — норм, синій — сумно. Голодний — сіріє.</p>
-  <p>✅ <b>Завдання дня.</b> Щодня три завдання, кожне дає +10 досвіду.</p>
-  <p>👕 <b>Гардероб.</b> З новими рівнями відкривається вбрання.</p>
-  <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10).</p></div>
+  <p>🦗 <b>Годуйте щодня</b> (+${XP.feed}). Кожні 7 днів поспіль — ще +${XP.streak7} 🔥. Якщо не годувати 2+ дні, хамелеон голодний: ігри не дають досвіду, а щодня зникає ${XP.hunger} досвіду (рівень не падає).</p>
+  <p>✅ <b>Завдання дня</b> — по +${XP.task}. Коли <b>обоє</b> виконали всі три — +${XP.team} командного бонусу 🤝</p>
+  <p>🎮 <b>Ігри</b> — +${XP.game} за перемогу (до ${XP.gameDay} на день) і знахідка в колекцію. Ігор 11, щоразу випадає інша.</p>
+  <p>💞 <b>Справжні зустрічі</b> важать більше: «Були тут» на місці — +${XP.visit}, спільний чек-ін тижня — +${XP.checkin}.</p>
+  <p>🏅 <b>Нагороди</b> за серії, перемоги, записки, побачення й колекцію — дають досвід і відкривають особливі речі.</p>
+  <p>👕 <b>Гардероб</b>: головні убори, окуляри, прикраси на шию, речі на спинку й у лапку, колір шкіри, візерунок і фон. Відкриваються з рівнями й нагородами.</p>
+  <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10). Корона — на 8 рівні.</p></div>
   <button class="btn block mt" data-close>Зрозуміло</button>`, (el) => { el.querySelector('[data-close]').onclick = closeSheet; }));
 
 on('tasks', () => {
   const t = today();
   const day = S.room.daily?.[t]?.[S.me.id] || {};
-  openSheet(`<h3 class="h3">Завдання дня</h3><p class="muted small">Кожне виконане завдання — +10 досвіду. Нові завдання — завтра.</p>
+  openSheet(`<h3 class="h3">Завдання дня</h3><p class="muted small">Кожне завдання — +${XP.task} досвіду. Якщо ви <b>обоє</b> виконаєте всі три — ще +${XP.team} командного бонусу 🤝</p>
     <div class="list">${tasksFor(t).map((k) => {
       const done = day.claimed?.[k];
       const prog = Math.min(day[k] || 0, TASKS[k].goal);
-      return `<div class="li ${done ? 'done' : ''}"><span class="li-ic">${done ? icon('check', 18) : '•'}</span><span class="grow">${TASKS[k].title}</span><span class="muted small">${TASKS[k].goal > 1 ? `${prog}/${TASKS[k].goal}` : done ? '+10' : ''}</span></div>`;
-    }).join('')}</div>`);
+      return `<div class="li ${done ? 'done' : ''}"><span class="li-ic">${done ? icon('check', 18) : '•'}</span><span class="grow">${TASKS[k].title}</span><span class="muted small">${TASKS[k].goal > 1 ? `${prog}/${TASKS[k].goal}` : done ? '+' + XP.task : ''}</span></div>`;
+    }).join('')}</div>
+    ${(() => { const pid = partnerId(); if (!pid) return ''; const pd = S.room.daily?.[t]?.[pid]?.claimed || {}; const n = tasksFor(t).filter((k) => pd[k]).length; return `<div class="team-box mt">${S.room.daily?.[t]?._team ? '🤝 Командний бонус сьогодні отримано!' : `🤝 ${esc(partner().name)}: ${n}/3 завдань`}</div>`; })()}`);
 });
 
-on('wardrobe', (el, e) => {
-  e.stopPropagation();
-  const lv = levelInfo(S.room.pet.xp).level;
-  openSheet(`<h3 class="h3">Гардероб</h3><p class="muted small">Нове вбрання відкривається з рівнями.</p>
-    <div class="wardrobe-grid">${OUTFITS.map((o) => {
-      const locked = lv < o.level;
-      return `<button class="wd ${S.room.pet.outfit === o.id ? 'on' : ''} ${locked ? 'locked' : ''}" data-o="${o.id}" ${locked ? 'disabled' : ''}>
-        <span class="wd-e">${o.emoji || '🦎'}</span><span>${o.name}</span>${locked ? `<span class="muted small">${icon('lock', 12)} рівень ${o.level}</span>` : ''}</button>`;
-    }).join('')}</div>`, (el2) => {
-    el2.querySelectorAll('[data-o]').forEach((b) => b.onclick = async () => { if (await act({ type: 'outfit', id: b.dataset.o })) closeSheet(); });
+function wardrobeSheet(slot = 'hat') {
+  const pet = S.room.pet;
+  const look = lookOf(pet);
+  const lv = levelInfo(pet.xp).level;
+  const items = ITEMS.filter((x) => x.slot === slot);
+  const swatch = (it) => (it.slot === 'skin' ? (it.e.startsWith('#') ? `<span class="sw" style="background:${it.e}"></span>` : `<span class="wd-e">${it.e}</span>`) : `<span class="wd-e">${it.e || '🚫'}</span>`);
+  openSheet(`<div class="sheet-h"><h3>Гардероб</h3><span class="chip">рівень ${lv}</span></div>
+    <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${petSvg(look, 'happy', 'green', 150)}</div>
+    <div class="wd-tabs">${Object.entries(SLOTS).map(([k, n]) => `<button class="pill ${k === slot ? 'on' : ''}" data-slot="${k}">${n}</button>`).join('')}</div>
+    <div class="wardrobe-grid">${items.map((it) => {
+      const ok = unlocked(S.room, it);
+      return `<button class="wd ${look[slot] === it.id ? 'on' : ''} ${ok ? '' : 'locked'}" data-id="${it.id}" ${ok ? '' : 'data-locked="1"'}>
+        ${swatch(it)}<span>${esc(it.name)}</span>${ok ? '' : `<span class="muted xs">${icon('lock', 11)} ${esc(unlockText(it.unlock))}</span>`}</button>`;
+    }).join('')}</div>`, (el) => {
+    el.querySelectorAll('[data-slot]').forEach((b) => (b.onclick = () => wardrobeSheet(b.dataset.slot)));
+    el.querySelectorAll('[data-id]').forEach((b) => (b.onclick = async () => {
+      if (b.dataset.locked) { const it = itemOf(slot, b.dataset.id); return toast(`Відкриється: ${unlockText(it.unlock)}`); }
+      if (await act({ type: 'equip', slot, id: b.dataset.id })) { const y = el.closest('.sheet')?.scrollTop; wardrobeSheet(slot); const sh = document.querySelector('.sheet'); if (sh && y) sh.scrollTop = y; }
+    }));
   });
-});
+}
+on('wardrobe', (el, e) => { e.stopPropagation(); wardrobeSheet(); });
+
+function badgesSheet() {
+  const got = S.room.pet.badges || {};
+  const rewardOf = (id) => ITEMS.filter((it) => it.unlock?.badge === id).map((it) => it.e.startsWith('#') ? '🎨' : it.e).join(' ');
+  openSheet(`<div class="sheet-h"><h3>Нагороди</h3><span class="chip">${Object.keys(got).length} / ${BADGES.length}</span></div>
+    <p class="muted small">Кожна нагорода дає досвід, а деякі ще й відкривають особливі речі в гардеробі.</p>
+    <div class="badges">${BADGES.map((b) => `<div class="bdg ${got[b.id] ? 'got' : ''}"><span class="bdg-e">${got[b.id] ? b.e : '🔒'}</span>
+      <span class="grow"><b>${b.name}</b><br><span class="muted small">${b.desc}</span></span>
+      <span class="bdg-r small">+${b.xp}${rewardOf(b.id) ? `<br>${rewardOf(b.id)}` : ''}</span></div>`).join('')}</div>`);
+}
+on('badges', (el, e) => { e.stopPropagation(); badgesSheet(); });
+
+// Celebrate a new badge once on this device.
+export function badgeToast() {
+  const lb = S.room?.pet?.lastBadge;
+  if (!lb || LS.get('seenBadge', 0) >= lb.ts) return;
+  LS.set('seenBadge', lb.ts);
+  const b = BADGES.find((x) => x.id === lb.id);
+  if (!b || Date.now() - lb.ts > 3 * 86400e3) return;
+  setTimeout(() => openSheet(`<div class="center pad"><div class="bdg-big">${b.e}</div><h3 class="h3">Нова нагорода!</h3><p><b>${b.name}</b></p><p class="muted">${b.desc} · +${b.xp} досвіду</p></div>
+    <button class="btn block" data-ok>Ура! 🎉</button><button class="btn ghost block" data-all>Усі нагороди</button>`, (sh) => {
+    sh.querySelector('[data-ok]').onclick = closeSheet; sh.querySelector('[data-all]').onclick = badgesSheet;
+  }), 600);
+}
 
 /* ----- note / surprise ----- */
 function H_noteSheet() {
