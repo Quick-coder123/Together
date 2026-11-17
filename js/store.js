@@ -1,5 +1,5 @@
 // App state, server sync, sheets/forms and the click-handler registry.
-import { esc, icon, localDate } from './ui.js';
+import { esc, icon, localDate, resizeImage } from './ui.js';
 
 const LS = {
   get: (k, d = null) => { try { return JSON.parse(localStorage.getItem('os.' + k)) ?? d; } catch { return d; } },
@@ -219,6 +219,11 @@ export function openForm(cfg) {
       case 'seg': input = `<div class="seg" data-seg="${f.key}">${f.options.map(([val, lab]) => `<button type="button" class="seg-b ${String(val) === String(v) ? 'on' : ''}" data-v="${esc(val)}">${lab}</button>`).join('')}</div><input type="hidden" id="${id}" value="${esc(v)}">`; break;
       case 'check': return `<label class="check-row"><input type="checkbox" id="${id}" ${v ? 'checked' : ''}><span>${esc(f.label)}</span></label>`;
       case 'number': input = `<input class="input num-input" id="${id}" type="text" inputmode="decimal" data-num autocomplete="off" value="${esc(v === '' || v == null ? '' : fmtNum(v))}"${ph}>`; break;
+      case 'image': return `<div class="field"><span>${esc(f.label)}</span><div class="img-field" data-img="${f.key}">
+          <div class="img-prev ${v ? 'has' : ''}">${v ? `<img src="${esc(v)}" alt="" referrerpolicy="no-referrer">` : icon('image', 28)}</div>
+          <div class="img-acts"><label class="btn sm secondary">${icon('image', 16)} <span data-img-l>${v ? 'Змінити фото' : 'Додати фото'}</span><input type="file" accept="image/*" hidden></label>
+          <button type="button" class="btn sm ghost" data-img-del ${v ? '' : 'hidden'}>${icon('trash', 16)} Прибрати</button></div>
+          <input type="hidden" id="${id}" value="${esc(v)}"></div></div>`;
       case 'date': case 'time': input = `<input class="input" id="${id}" type="${f.type}" value="${esc(v)}">`; break;
       default: input = `<input class="input" id="${id}" type="text" maxlength="${f.max || 120}" value="${esc(v)}"${ph}>`;
     }
@@ -239,6 +244,15 @@ export function openForm(cfg) {
       seg.querySelectorAll('.seg-b').forEach((x) => x.classList.toggle('on', x === b));
       el.querySelector('#f-' + seg.dataset.seg).value = b.dataset.v;
     }));
+    el.querySelectorAll('[data-img]').forEach((box) => {
+      const hid = box.querySelector('input[type=hidden]'), prev = box.querySelector('.img-prev'), del = box.querySelector('[data-img-del]');
+      const show = (src) => { hid.value = src; prev.classList.toggle('has', !!src); prev.innerHTML = src ? `<img src="${esc(src)}" alt="">` : icon('image', 28); del.hidden = !src; box.querySelector('[data-img-l]').textContent = src ? 'Змінити фото' : 'Додати фото'; };
+      box.querySelector('input[type=file]').onchange = async (e) => {
+        const file = e.target.files?.[0]; if (!file) return;
+        try { show(await resizeImage(file, 320, 0.78)); } catch { toast('Не вдалося відкрити фото'); }
+      };
+      del.onclick = () => show('');
+    });
     const form = el.querySelector('form');
     let sending = false;
     form.onsubmit = async (e) => {

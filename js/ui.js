@@ -82,6 +82,10 @@ const P = {
   steps: '<path d="M8.5 3c1.9 0 3 2.3 3 5s-1 4.2-3 4.2S5.5 10.7 5.5 8 6.6 3 8.5 3zM6 14.5h5V16a2.5 2.5 0 0 1-5 0zM15.5 7c1.9 0 3 2.3 3 5s-1 4.2-3 4.2-3-1.5-3-4.2S13.6 7 15.5 7zM13 18.5h5V20a2.5 2.5 0 0 1-5 0z"/>',
   smile: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14c.8 1.3 2 2 3.5 2s2.7-.7 3.5-2M9 9.5v.5M15 9.5v.5"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 5.3l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  image: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/>',
+  bag: '<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+  out: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h4"/>',
   calheart: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 18s-2.8-1.6-2.8-3.3c0-.9.7-1.5 1.4-1.5.6 0 1 .3 1.4.8.4-.5.8-.8 1.4-.8.7 0 1.4.6 1.4 1.5 0 1.7-2.8 3.3-2.8 3.3z"/>',
   trash: '<path d="M4.5 7h15M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   archive: '<rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V20h14V8.5M10 12h4"/>',
@@ -105,6 +109,7 @@ export const PALETTE = {
   blue: ['#6FA8DC', '#3F78B5', '#DCEBFA'],
   pink: ['#F28DB2', '#C95A86', '#FFE0EC'],
   grey: ['#9FB3A3', '#6F8475', '#E3ECE5'],
+  violet: ['#B48CF0', '#7E57C2', '#EFE4FF'],
 };
 // face: happy | ok | sad | love | sleep ; pose: sit | wave ; water (kept name) → branch with leaves
 export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color, branch: showBranch = true } = {}) {
@@ -172,7 +177,7 @@ export function avatar(member, id = '', size = 44) {
   return `<span class="ava" style="width:${size}px;height:${size}px;font-size:${size * 0.42}px;background:${GRADS[h]}">${esc(letter)}</span>`;
 }
 
-export async function resizeImage(file, max = 160) {
+export async function resizeImage(file, max = 160, quality = 0.82) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
@@ -180,7 +185,7 @@ export async function resizeImage(file, max = 160) {
     const c = document.createElement('canvas');
     c.width = c.height = max;
     c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, max, max);
-    return c.toDataURL('image/jpeg', 0.82);
+    return c.toDataURL('image/jpeg', quality);
   } finally { URL.revokeObjectURL(url); }
 }
 
@@ -226,5 +231,26 @@ export function cookScene() {
       </svg>
       <div class="flame"><i></i><i></i><i></i></div>
     </div>
+  </div>`;
+}
+
+/* ---------------- «Нишпорка» — the shopping-detective chameleon of the wishlist ---------------- */
+const CAP = `<svg class="ny-cap" viewBox="0 0 90 46" aria-hidden="true"><path d="M8 34 C8 12 30 4 46 4 C66 4 84 14 84 32 Z" fill="#5B3F8C"/><path d="M4 34 h80 a3 3 0 0 1 0 7 H4 a3 3 0 0 1 0-7z" fill="#46306E"/><path d="M14 30 C20 16 36 10 50 10" stroke="#fff" stroke-opacity=".18" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="46" cy="5" r="4" fill="#F2C14E"/></svg>`;
+const GLASS = `<svg class="ny-glass" viewBox="0 0 60 60" aria-hidden="true"><circle cx="24" cy="24" r="16" fill="#DFF3FF" fill-opacity=".55" stroke="#8E6B4E" stroke-width="5"/><path d="M14 18 a12 12 0 0 1 10-6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M36 36 L52 52" stroke="#8E6B4E" stroke-width="8" stroke-linecap="round"/></svg>`;
+export function nyshporka(size = 90, face = 'happy') {
+  return `<span class="ny" style="--s:${size}px">${CAP}${otter({ face, size, color: 'violet' })}${GLASS}</span>`;
+}
+export function scanScene() {
+  return `<div class="scan-scene" aria-hidden="true">
+    <div class="scan-page">
+      <div class="sp-bar"><i></i><i></i><i></i></div>
+      <div class="sp-img"><span>🎁</span></div>
+      <div class="sp-l w80"></div><div class="sp-l w60"></div>
+      <div class="sp-price">₴ <b></b></div>
+      <div class="sp-l w90 thin"></div><div class="sp-l w70 thin"></div>
+      <div class="sp-beam"></div>
+    </div>
+    <div class="scan-buddy">${nyshporka(96)}</div>
+    <div class="scan-sparks"><span>✨</span><span>🏷️</span><span>📸</span></div>
   </div>`;
 }
