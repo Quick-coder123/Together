@@ -713,3 +713,29 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .sug:last-child { border-bottom: 0; }
 .sug:active { background: var(--card2); }
 .sug-empty { padding: 12px 14px; }
+/* Кухар Хамі: cooking loading scene */
+.chef-ic { background: linear-gradient(135deg, #FFB86B, #E8913A); font-size: 24px; }
+.cook-scene { position: relative; width: min(300px, 86vw); height: 210px; margin: 6px auto 0; }
+.cook-buddy { position: absolute; left: 0; bottom: 0; width: 110px; animation: chefSway 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.cook-buddy svg.otter { width: clamp(84px, 28vw, 110px); height: auto; display: block; }
+.chef-hat { position: absolute; width: 46%; left: 27%; top: -9%; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+@keyframes chefSway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-3px); } }
+.cook-pot { position: absolute; right: 0; bottom: 6px; width: 62%; }
+.cook-pot svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+.cook-pot .ladle { transform-box: view-box; transform-origin: 118px 8px; animation: stir 1.2s ease-in-out infinite; }
+@keyframes stir { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(16deg); } }
+.cook-pot .bubbles circle { animation: bubble 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.cook-pot .bubbles circle:nth-child(2) { animation-delay: .4s; } .cook-pot .bubbles circle:nth-child(3) { animation-delay: .8s; }
+@keyframes bubble { 0%, 100% { transform: scale(.4); opacity: .3; } 50% { transform: scale(1.3); opacity: 1; } }
+.steam { position: absolute; left: 20%; right: 20%; top: -46px; height: 60px; z-index: 0; }
+.steam i { position: absolute; bottom: 0; width: 14px; height: 40px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.55), transparent); filter: blur(2px); animation: steam 2.4s ease-out infinite; }
+.steam i:nth-child(1) { left: 10%; } .steam i:nth-child(2) { left: 45%; animation-delay: .8s; } .steam i:nth-child(3) { left: 80%; animation-delay: 1.6s; }
+@keyframes steam { 0% { transform: translateY(10px) scaleX(.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-46px) scaleX(1.4); opacity: 0; } }
+.drops { position: absolute; left: 0; right: 0; top: -70px; height: 80px; z-index: 2; pointer-events: none; }
+.drops span { position: absolute; top: 0; font-size: 22px; opacity: 0; animation: drop 5s ease-in infinite; }
+.drops span:nth-child(1) { left: 22%; } .drops span:nth-child(2) { left: 52%; animation-delay: 1s; } .drops span:nth-child(3) { left: 36%; animation-delay: 2s; } .drops span:nth-child(4) { left: 62%; animation-delay: 3s; } .drops span:nth-child(5) { left: 44%; animation-delay: 4s; }
+@keyframes drop { 0% { opacity: 0; transform: translateY(-10px) rotate(0); } 8% { opacity: 1; } 20% { opacity: 1; transform: translateY(78px) rotate(200deg) scale(.8); } 24%, 100% { opacity: 0; transform: translateY(84px) scale(.3); } }
+.flame { display: flex; justify-content: center; gap: 8px; margin-top: -2px; }
+.flame i { width: 12px; height: 18px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #FFE27A, #FF8A3D 60%, #E6566E); animation: flicker .25s ease-in-out infinite alternate; }
+.flame i:nth-child(2) { height: 22px; animation-delay: .1s; }
+@keyframes flicker { to { transform: scaleY(1.2) translateY(-2px); opacity: .85; } }

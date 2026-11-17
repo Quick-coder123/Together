@@ -1,6 +1,6 @@
 // «Дім» — shopping, chores, recipes.
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, partnerId } from '../store.js';
-import { otter } from '../ui.js';
+import { otter, cookScene } from '../ui.js';
 import { esc, icon, emptyState, fmtDate } from '../ui.js';
 import { dayDiff } from '/lib/core.js';
 
@@ -60,8 +60,8 @@ const AI_KINDS = [['any', '🎲 Будь-що'], ['dinner', '🕯️ Вечер�
 function aiCard() {
   const k = ui('aiKind', 'any');
   return `<section class="card ai-card">
-    <div class="row"><span class="ic-box" style="background:linear-gradient(135deg,#8B5CF6,#E14FD3);color:#fff">${icon('wand')}</span>
-      <div class="grow"><b class="lg">Випадковий рецепт</b><br><span class="muted small">Знайде в інтернеті цікаву страву з фото й перекладе українською</span></div></div>
+    <div class="row"><span class="ic-box chef-ic">👨‍🍳</span>
+      <div class="grow"><b class="lg">Кухар Хамі</b><br><span class="muted small">Знайде цікаву страву з фото й розпише рецепт українською</span></div></div>
     <div class="pills mt">${AI_KINDS.map(([v, l]) => `<button class="pill ${k === v ? 'on' : ''}" data-a="aiKind" data-v="${v}">${l}</button>`).join('')}</div>
     <button class="btn ai-btn block" data-a="aiRecipe">${icon('sparkle', 18)} Знайти випадковий рецепт</button>
   </section>`;
@@ -136,7 +136,7 @@ function aiPreview(sh, r, note) {
   sh.innerHTML = `<div class="grab"></div>
     ${/^https:\/\//.test(r.image || '') ? `<img class="rec-img" src="${esc(r.image)}" alt="" loading="lazy">` : ''}
     ${note ? `<div class="info-bar small">🌐 ${note === 'no_translation' ? 'Рецепт англійською. Щоб він був українською, додай безкоштовний ключ Gemini (див. README).' : 'Переклад зараз недоступний, показую оригінал.'}</div>` : ''}
-    <div class="muted small">🦎 Хамі знайшов для вас</div>
+    <div class="muted small">👨‍🍳 Кухар Хамі радить приготувати</div>
     <h3 class="h2" style="margin:4px 0 6px">${esc(r.title)}</h3>
     ${r.description ? `<p class="muted" style="margin:0 0 8px">${esc(r.description)}</p>` : ''}
     <div class="row gap wrap">${r.time ? `<span class="chip">⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span class="chip">🍽 ${esc(r.servings)}</span>` : ''}</div>
@@ -156,8 +156,16 @@ function aiPreview(sh, r, note) {
   };
 }
 async function aiSearch(sh) {
-  sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'happy', size: 110, bob: true })}
-    <div class="spin"></div><b>Гід-хамелеон шукає рецепт…</b><p class="muted small">Кілька секунд</p></div>`;
+  sh.innerHTML = `<div class="grab"></div><div class="center">${cookScene()}<b class="load-line">Кухар Хамі ставить каструлю…</b><p class="muted small">Кілька секунд</p></div>`;
+  const lines = ['Кухар Хамі ставить каструлю…', 'Гортає кулінарну книгу…', 'Кидає щіпку солі…', 'Куштує з ложечки…', 'Прикрашає зеленню…'];
+  let li = 0;
+  const lt = setInterval(() => {
+    const el = sh.querySelector('.load-line');
+    if (!el) { clearInterval(lt); return; }
+    li = (li + 1) % lines.length;
+    el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
+    el.textContent = lines[li];
+  }, 2000);
   try {
     const res = await fetch('/api/recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('aiKind', 'any') }) });
     const data = await res.json().catch(() => ({}));

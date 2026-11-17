@@ -205,3 +205,26 @@ export function mapScene() {
     <div class="map-buddy">${otter({ face: 'happy', size: 96, color: 'green' })}</div>
   </div>`;
 }
+
+/* ---------------- chef chameleon cooking (recipe loading scene) ---------------- */
+export function cookScene() {
+  const hat = `<svg class="chef-hat" viewBox="0 0 80 64" aria-hidden="true"><path d="M14 40 C2 38 2 18 16 18 C16 4 34 0 40 10 C46 0 64 4 64 18 C78 18 78 38 66 40 Z" fill="#fff"/><rect x="16" y="38" width="48" height="16" rx="4" fill="#F1F1F1"/><path d="M28 40 v12 M40 40 v12 M52 40 v12" stroke="#DDD" stroke-width="2"/></svg>`;
+  return `<div class="cook-scene" aria-hidden="true">
+    <div class="cook-buddy">${hat}${otter({ face: 'happy', size: 110, color: 'green' })}</div>
+    <div class="cook-pot">
+      <div class="steam"><i></i><i></i><i></i></div>
+      <div class="drops"><span>🍅</span><span>🥕</span><span>🧅</span><span>🧀</span><span>🌿</span></div>
+      <svg viewBox="0 0 160 110">
+        <g class="ladle"><path d="M118 8 L92 62" stroke="#8E6B4E" stroke-width="7" stroke-linecap="round"/><ellipse cx="88" cy="66" rx="12" ry="6" fill="#8E6B4E"/></g>
+        <ellipse cx="80" cy="44" rx="66" ry="12" fill="#E8913A"/>
+        <g class="bubbles"><circle cx="52" cy="44" r="4" fill="#F7B35E"/><circle cx="96" cy="42" r="3" fill="#F7B35E"/><circle cx="72" cy="47" r="3.5" fill="#F7B35E"/></g>
+        <path d="M12 44 Q14 104 80 104 Q146 104 148 44" fill="#3D3A42"/>
+        <path d="M12 44 Q14 104 80 104 Q146 104 148 44" fill="none" stroke="#56525E" stroke-width="3"/>
+        <ellipse cx="80" cy="44" rx="68" ry="13" fill="none" stroke="#56525E" stroke-width="5"/>
+        <rect x="0" y="50" width="16" height="7" rx="3.5" fill="#56525E"/><rect x="144" y="50" width="16" height="7" rx="3.5" fill="#56525E"/>
+        <path d="M30 70 Q34 90 50 96" stroke="#ffffff" stroke-opacity=".12" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="flame"><i></i><i></i><i></i></div>
+    </div>
+  </div>`;
+}
