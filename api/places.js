@@ -88,6 +88,7 @@ export async function POST(request) {
   const mid = String(body?.member || '').slice(0, 40);
   const room = await loadRoom(code);
   if (!room || !room.members?.[mid]) return json({ error: 'Пару не знайдено' }, 403);
+  if (body.log) { console.error('client map error:', str(body.log, 400), '|', str(body.ua, 120)); return json({ ok: true }); }
   if ((await countUse(code)) > DAILY_LIMIT) return json({ error: `На сьогодні ліміт пошуку місць (${DAILY_LIMIT}) вичерпано. Завтра — нові!` }, 429);
   const kind = KINDS[body.kind] !== undefined ? body.kind : 'any';
   const where = str(body.where, 80);

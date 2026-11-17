@@ -706,3 +706,10 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 @keyframes peek { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
 .load-line { display: block; margin-top: 30px; min-height: 22px; }
 .load-line.swap { animation: fadeUp .35s both; }
+.city-box { position: relative; }
+.city-sug { margin: -6px 0 10px; background: var(--card); border: 1px solid var(--line2); border-radius: 16px; overflow: hidden; animation: fadeUp .2s both; }
+.city-sug[hidden] { display: none; }
+.sug { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+.sug:last-child { border-bottom: 0; }
+.sug:active { background: var(--card2); }
+.sug-empty { padding: 12px 14px; }

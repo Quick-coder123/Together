@@ -1,7 +1,7 @@
 // «Місця» — places and dates.
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, LS } from '../store.js';
 import { esc, icon, emptyState, fmtDate, otter, mapScene } from '../ui.js';
-import { geocodeCity, reverse, nearbyPlaces } from '../osm.js';
+import { geocodeCity, reverse, nearbyPlaces, suggestCities, reportMapError } from '../osm.js';
 
 export const CATS = {
   cafe: ['☕', 'Кафе'], restaurant: ['🍽️', 'Ресторан'], bar: ['🍷', 'Бар'], park: ['🌳', 'Парк'], museum: ['🖼️', 'Виставка / музей'],
@@ -174,7 +174,10 @@ function whereForm(sh, note = '') {
     <div class="sec-label">ДЕ ШУКАЄМО</div>
     <button class="btn block" data-geo>${icon('pin', 18)} Біля мене</button>
     <div class="divider-t">або в місті</div>
-    <form class="add-line" data-city-form>${icon('search', 20)}<input id="where-city" placeholder="Київ, Львів, Одеса…" value="${esc(city)}" maxlength="80" autocomplete="off" enterkeyhint="search"><button class="send sm" type="submit" aria-label="Шукати">${icon('chev', 18)}</button></form>`;
+    <div class="city-box">
+      <form class="add-line" data-city-form>${icon('search', 20)}<input id="where-city" placeholder="Почни писати місто…" value="${esc(city)}" maxlength="80" autocomplete="off" autocorrect="off" enterkeyhint="search"><button class="send sm" type="submit" aria-label="Шукати">${icon('chev', 18)}</button></form>
+      <div class="city-sug" hidden></div>
+    </div>`;
   sh.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => { S.ui.whereKind = b.dataset.k; sh.querySelectorAll('[data-k]').forEach((x) => x.classList.toggle('on', x === b)); });
   sh.querySelector('[data-geo]').onclick = () => {
     if (!navigator.geolocation) { toast('Цей браузер не дає геолокацію. Вкажи місто.'); return; }
@@ -195,6 +198,32 @@ function whereForm(sh, note = '') {
     );
     setTimeout(() => fail({ code: 3 }), 20000);
   };
+  // City suggestions while typing.
+  const inp = sh.querySelector('#where-city');
+  const box = sh.querySelector('.city-sug');
+  let sugTimer, sugCtl, sugList = [];
+  const showSug = (list, q) => {
+    sugList = list;
+    if (!list.length) { box.hidden = !q; box.innerHTML = q ? '<div class="sug-empty muted small">Нічого не знайшли — спробуй інакше</div>' : ''; return; }
+    box.hidden = false;
+    box.innerHTML = list.map((c, i) => `<button type="button" class="sug" data-i="${i}">📍 <span class="grow"><b>${esc(c.name)}</b>${c.sub ? `<br><span class="muted small">${esc(c.sub)}</span>` : ''}</span></button>`).join('');
+    box.querySelectorAll('.sug').forEach((b) => b.onclick = () => {
+      const c = sugList[+b.dataset.i];
+      LS.set('lastCity', c.name);
+      whereSearch(sh, { lat: c.lat, lon: c.lon, radius: c.radius, label: c.name });
+    });
+  };
+  inp.addEventListener('focus', () => setTimeout(() => inp.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300));
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim();
+    clearTimeout(sugTimer); sugCtl?.abort();
+    if (q.length < 2) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false; box.innerHTML = '<div class="sug-empty muted small">Хамі шукає на мапі…</div>';
+    sugTimer = setTimeout(async () => {
+      sugCtl = new AbortController();
+      try { showSug(await suggestCities(q, sugCtl.signal), q); } catch (e) { if (e.name !== 'AbortError') { box.hidden = true; } }
+    }, 300);
+  });
   sh.querySelector('[data-city-form]').onsubmit = (e) => {
     e.preventDefault();
     const c = sh.querySelector('#where-city').value.trim();
@@ -221,15 +250,18 @@ async function whereSearch(sh, where) {
   whereLoading(sh, SEARCH_LINES);
   try {
     let point = where;
-    let label = '';
+    let label = where.label || '';
     if (where.city) {
       const g = await geocodeCity(where.city);
       if (!g) throw new Error(`Хамі не знайшов «${where.city}» на мапі. Спробуй написати інакше.`);
       point = g; label = g.label;
-    } else {
+    } else if (!label) {
       label = await reverse(where.lat, where.lon);
     }
-    const cands = await nearbyPlaces({ lat: point.lat, lon: point.lon, radius: point.radius || 2500, kind: ui('whereKind', 'any'), exclude: S.room.places.map((p) => p.name) });
+    const cands = await nearbyPlaces({
+      lat: point.lat, lon: point.lon, radius: point.radius || 2500, kind: ui('whereKind', 'any'), exclude: S.room.places.map((p) => p.name),
+      onFallback: (e) => reportMapError(S.code, S.me.id, 'fallback: ' + e.message),
+    });
     if (!cands.length) throw new Error('Поруч не знайшли підходящих місць. Спробуй інший тип або місто.');
     const res = await fetch('/api/places', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('whereKind', 'any'), where: label, cands }) });
     const data = await res.json().catch(() => ({}));
@@ -239,6 +271,7 @@ async function whereSearch(sh, where) {
     whereResults(sh, data, where);
   } catch (e) {
     clearInterval(loadTimer);
+    reportMapError(S.code, S.me.id, (e.detail ? e.detail + ' | ' : '') + e.message);
     if (!sh.isConnected) return;
     const msg = /Failed to fetch|NetworkError|Load failed/i.test(e.message) ? 'Немає звʼязку. Перевір інтернет.' : e.message;
     sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div>
