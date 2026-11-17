@@ -115,7 +115,6 @@ export function messagesFor(action, before, after, mid) {
       if (a.col === 'dates') return out(`🎉 Нова важлива дата: ${it.title} (${fmtDay(it.date)})`, { tag: 'date' });
       if (a.col === 'places' && it.mode === 'plan') return out(`📍 ${me} планує: ${it.name}${it.date ? ' — ' + fmtDay(it.date) : ''}`, { tag: 'place' });
       if (a.col === 'trips') return out(`🧳 ${me} планує подорож: ${it.name}`, { tag: 'trip' });
-      if (a.col === 'gifts' && it.owner === mid) return out(`🎁 ${me} мріє про: ${it.title}${it.price ? ' · ' + it.price : ''}. Підказка для подарунка 😉`, { tag: 'wish' });
       if (a.col === 'goals') return out(`🐷 Нова спільна ціль: ${it.title} — ${money(it.target)}`, { tag: 'goal' });
       return [];
     }
