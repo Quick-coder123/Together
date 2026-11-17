@@ -17,6 +17,7 @@ export function meView() {
   return `
   ${coupleCard(r, pid, p, st)}
   ${meM()?.login ? '' : `<button class="card banner warn-b" data-a="loginSetup"><span class="banner-ic">🔐</span><span class="grow"><b>Створи логін і пароль</b><br><span class="muted small">Щоб заходити з будь-якого пристрою й захистити профіль</span></span>${icon('chev', 20)}</button>`}
+  ${['off', 'need-install'].includes(S.ui.pushState) && !LS.get('pushBannerHidden') ? `<div class="card banner push-b"><span class="banner-ic">🔔</span><button class="grow left" data-a="go" data-tab="more" data-sub="settings"><b>Увімкни сповіщення</b><br><span class="muted small">Записки, сюрпризи й ранкові нагадування — одразу на телефон</span></button><button class="icon-btn xs ghost" data-a="pushBannerHide" aria-label="Сховати">${icon('x', 16)}</button></div>` : ''}
   ${unreadNotesBanner(r)}
   ${stepsCard(r, pid)}
   ${petCard(r, t)}
@@ -434,3 +435,5 @@ export async function share() {
 }
 on('invite', share);
 void emptyState;
+
+on('pushBannerHide', () => { LS.set('pushBannerHidden', true); S.render(); });

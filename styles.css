@@ -752,3 +752,7 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .cal-tools .seg { margin-bottom: 0; flex: 1; }
 .cal-tools .btn { min-height: 0; height: auto; border-radius: 16px; padding: 0 14px; flex: none; }
 .num-input { font-variant-numeric: tabular-nums; }
+.push-what { margin: 10px 0 12px; padding-left: 18px; }
+.push-what li { margin: 3px 0; }
+.ok-box { background: var(--okbg); }
+.push-b { display: flex; align-items: center; gap: 12px; }

@@ -5,6 +5,7 @@ import { placesView } from './views/places.js';
 import { homeView, addShop } from './views/home.js';
 import { wishView } from './views/wish.js';
 import { moreView, applyTheme, onAvatarFile } from './views/more.js';
+import { pushState, resyncPush } from './push.js';
 
 const app = document.getElementById('app');
 applyTheme();
@@ -208,7 +209,14 @@ document.addEventListener('change', (e) => {
 });
 
 /* ---------------- boot ---------------- */
+async function checkPush() {
+  try { S.ui.pushState = await pushState(); } catch { S.ui.pushState = 'unsupported'; }
+  if (S.code) S.render();
+}
 render();
+checkPush();
+resyncPush();
+navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'refresh') refresh(true); });
 refresh(true);
 setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 4000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });

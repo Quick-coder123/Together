@@ -1,7 +1,7 @@
-const CACHE = 'hamelyky-v14';
+const CACHE = 'hamelyky-v15';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/manifest.webmanifest',
-  '/js/app.js', '/js/games.js', '/js/osm.js', '/js/store.js', '/js/ui.js', '/js/derive.js',
+  '/js/app.js', '/js/games.js', '/js/osm.js', '/js/push.js', '/js/store.js', '/js/ui.js', '/js/derive.js',
   '/js/views/me.js', '/js/views/places.js', '/js/views/home.js', '/js/views/wish.js', '/js/views/more.js',
   '/lib/core.js', '/icons/icon.svg', '/icons/icon-192.png', '/icons/apple-touch-icon.png',
 ];
@@ -21,4 +21,26 @@ self.addEventListener('fetch', (e) => {
       .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return res; })
       .catch(() => caches.match(e.request).then((r) => r || caches.match('/index.html')))
   );
+});
+
+// Push notifications
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data?.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Хамелеончики', {
+    body: d.body || '',
+    tag: d.tag || undefined,
+    renotify: !!d.tag,
+    icon: '/icons/icon-192.png?v=2',
+    badge: '/icons/icon-192.png?v=2',
+    data: { url: d.url || '/' },
+  }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || '/', self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const c of list) if (c.url.startsWith(self.location.origin)) { c.focus(); c.postMessage({ type: 'refresh' }); return; }
+    return self.clients.openWindow(url);
+  }));
 });

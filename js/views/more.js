@@ -4,6 +4,7 @@ import { esc, icon, emptyState, avatar, fmtDate, fmtRange, money, MONTHS, WEEKDA
 import { addDays, weekStart, checkinWeek, CHECKIN_QUESTIONS, levelInfo } from '/lib/core.js';
 import { itemsBetween, KIND } from '../derive.js';
 import { piggy, share } from './me.js';
+import { enablePush, disablePush, testPush } from '../push.js';
 import { placeForm, blindForm } from './places.js';
 
 const back = () => `<button class="back" data-a="go" data-tab="more">${icon('back', 18)} Ще</button>`;
@@ -427,6 +428,8 @@ function settingsView() {
     <button class="li big" data-a="addStart"><span class="ic-box">${icon('calheart')}</span><span class="grow"><b>Дата початку стосунків</b><br><span class="muted small">${S.room.startDate ? fmtDate(S.room.startDate, { year: true }) : 'Не вказано'}</span></span>${icon('chev', 18)}</button>
     <button class="li big" data-a="petName"><span class="ic-box">🦎</span><span class="grow"><b>Імʼя хамелеона</b><br><span class="muted small">${esc(S.room.pet.name)} · рівень ${levelInfo(S.room.pet.xp).level}</span></span>${icon('chev', 18)}</button>
   </section>
+  <div class="sec-label">СПОВІЩЕННЯ</div>
+  <section class="card" id="push-box">${pushBox()}</section>
   <div class="sec-label">ВХІД З БУДЬ-ЯКОГО ПРИСТРОЮ</div>
   <section class="card list flush">
     <button class="li big" data-a="loginSetup"><span class="ic-box">${icon('lock')}</span><span class="grow"><b>${m.login ? 'Логін: ' + esc(m.login) : 'Створити логін і пароль'}</b><br><span class="muted small">${m.login ? 'Змінити логін чи пароль' : 'Щоб заходити з іншого телефона чи з іконки на головному екрані'}</span></span>${icon('chev', 18)}</button>
@@ -444,6 +447,23 @@ function settingsView() {
   </section>
   <p class="center muted small pad">Хамелеончики · куточок для двох 🦎❤️</p>`;
 }
+function pushBox() {
+  const st = S.ui.pushState || 'loading';
+  const what = `<ul class="push-what small muted"><li>💌 записки, 🎭 побачення наосліп, 🧹 справи для тебе</li><li>📅 нові події, 🐷 поповнення скарбничок, 💜 чек-ін</li><li>🌞 щоранку: що сьогодні в планах і що не забути</li></ul>`;
+  if (st === 'loading') return '<p class="muted small">Перевіряємо…</p>';
+  if (st === 'on') return `<div class="row"><span class="ic-box ok-box">🔔</span><div class="grow"><b>Сповіщення увімкнено</b><br><span class="muted small">на цьому пристрої</span></div></div>${what}
+    <div class="grid2"><button class="btn secondary sm" data-a="pushTest">Тестове</button><button class="btn ghost sm" data-a="pushOff">Вимкнути</button></div>`;
+  if (st === 'need-install') return `<div class="row"><span class="ic-box">📲</span><div class="grow"><b>Спершу додай на головний екран</b></div></div>
+    <p class="small">На iPhone сповіщення працюють лише в застосунку з головного екрана: Safari → «Поділитися» → «На екран "Додому"». Потім відкрий його з іконки й увімкни сповіщення тут.</p>`;
+  if (st === 'denied') return `<div class="row"><span class="ic-box">🔕</span><div class="grow"><b>Сповіщення заборонено</b></div></div>
+    <p class="small">Увімкни їх у налаштуваннях телефона: Параметри → Сповіщення → Хамелеончики → «Дозволити сповіщення». Потім повернись сюди.</p>`;
+  if (st === 'unsupported') return '<p class="small">Цей браузер не підтримує сповіщення. Спробуй Chrome на Android або застосунок з головного екрана на iPhone.</p>';
+  return `<div class="row"><span class="ic-box">🔔</span><div class="grow"><b>Отримуй сповіщення</b><br><span class="muted small">щоб нічого не пропустити</span></div></div>${what}
+    <button class="btn block" data-a="pushOn">Увімкнути сповіщення</button>`;
+}
+on('pushOn', async (el) => { el.disabled = true; if (await enablePush()) { S.ui.pushState = 'on'; S.render(); toast('Сповіщення увімкнено 🔔'); testPush(); } else el.disabled = false; });
+on('pushOff', async () => { await disablePush(); S.ui.pushState = 'off'; S.render(); toast('Сповіщення вимкнено на цьому пристрої'); });
+on('pushTest', async () => { const r = await testPush(); toast(r.ok ? 'Надіслано — зачекай кілька секунд' : 'Не вдалося надіслати. Спробуй вимкнути й увімкнути знову.'); });
 on('settings', () => go('more', 'settings'));
 on('rename', () => openForm({ title: 'Твоє імʼя', fields: [{ key: 'name', label: 'Імʼя', value: meM().name, required: true, max: 30 }], onSubmit: (v) => { S.me.name = v.name; LS.set('me', S.me); return act({ type: 'profile', name: v.name }); } }));
 on('avaDel', () => act({ type: 'profile', avatar: null }));

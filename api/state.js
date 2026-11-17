@@ -1,4 +1,5 @@
 import { applyAction, newRoom, viewFor, ActionError, isDate } from '../lib/core.js';
+import { notifyAfterAction } from './_notify.js';
 
 // Storage: Upstash Redis over REST (Vercel → Storage → Upstash for Redis).
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -102,9 +103,12 @@ export async function POST(request) {
       if (!state) return json({ error: 'Пару не знайдено' }, 404);
       const next = applyAction(state, member, action || {}, today);
       if (next.rev !== state.rev || action?.type === 'ping') await save(next);
-      return json(viewFor(next, member.id, today));
+      return { res: json(viewFor(next, member.id, today)), before: state, next };
     });
-    return result;
+    if (result instanceof Response) return result;
+    // Tell the partner about things that concern them (push), without slowing down on errors.
+    await Promise.race([notifyAfterAction(code, action, result.before, result.next, member.id), new Promise((r) => setTimeout(r, 4000))]);
+    return result.res;
   } catch (e) {
     if (e instanceof ActionError) return json({ error: e.message }, 400);
     if (e.message === 'busy') return json({ error: 'Сервер зайнятий, спробуй ще раз' }, 503);
