@@ -107,7 +107,7 @@ export const PALETTE = {
   grey: ['#9FB3A3', '#6F8475', '#E3ECE5'],
 };
 // face: happy | ok | sad | love | sleep ; pose: sit | wave ; water (kept name) → branch with leaves
-export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color } = {}) {
+export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color, branch: showBranch = true } = {}) {
   const col = color || { love: 'pink', sad: 'blue', ok: 'yellow' }[face] || 'green';
   const [c, d, l] = PALETTE[col] || PALETTE.green;
   const ink = '#2B2420', blush = '#F49A9A';
@@ -136,7 +136,7 @@ export function otter({ face = 'happy', pose = 'sit', water = false, outfit = ''
     <ellipse cx="100" cy="150" rx="40" ry="32" fill="${c}"/>
     <ellipse cx="100" cy="158" rx="23" ry="21" fill="${l}"/>
     <g fill="${d}" opacity=".55"><circle cx="72" cy="142" r="4"/><circle cx="128" cy="140" r="4"/><circle cx="80" cy="162" r="3"/><circle cx="121" cy="160" r="3"/></g>
-    ${branch}
+    ${showBranch ? branch : ''}
     ${arms}
     <path d="M70 70 Q100 26 130 70 Z" fill="${d}"/>
     <path d="M80 66 Q100 38 120 66" stroke="${c}" stroke-width="4" fill="none" opacity=".7"/>
