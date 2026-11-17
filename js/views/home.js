@@ -61,7 +61,7 @@ function aiCard() {
   const k = ui('aiKind', 'any');
   return `<section class="card ai-card">
     <div class="row"><span class="ic-box" style="background:linear-gradient(135deg,#8B5CF6,#E14FD3);color:#fff">${icon('wand')}</span>
-      <div class="grow"><b class="lg">ШІ-рецепт</b><br><span class="muted small">Знайде в інтернеті цікавий рецепт і додасть з інгредієнтами</span></div></div>
+      <div class="grow"><b class="lg">Випадковий рецепт</b><br><span class="muted small">Знайде в інтернеті цікаву страву з фото й перекладе українською</span></div></div>
     <div class="pills mt">${AI_KINDS.map(([v, l]) => `<button class="pill ${k === v ? 'on' : ''}" data-a="aiKind" data-v="${v}">${l}</button>`).join('')}</div>
     <button class="btn ai-btn block" data-a="aiRecipe">${icon('sparkle', 18)} Знайти випадковий рецепт</button>
   </section>`;
@@ -69,7 +69,7 @@ function aiCard() {
 function recipesView() {
   const list = S.room.recipes;
   if (!list.length) return aiCard() + emptyState('Рецептів поки немає.', 'Зберігайте улюблені страви — і додавайте інгредієнти в покупки одним дотиком.', `<button class="btn" data-a="recipeForm">${icon('plus', 18)} Додати свій рецепт</button>`);
-  return `${aiCard()}<div class="cards">${list.map((r) => `<button class="card place" data-a="recipe" data-id="${r.id}"><span class="place-em">${r.ai ? '✨' : '🍲'}</span>
+  return `${aiCard()}<div class="cards">${list.map((r) => `<button class="card place" data-a="recipe" data-id="${r.id}">${/^https:\/\//.test(r.image || '') ? `<img class="place-em img" src="${esc(r.image)}${r.image.includes('themealdb') ? '/preview' : ''}" alt="" loading="lazy">` : `<span class="place-em">${r.ai ? '✨' : '🍲'}</span>`}
     <span class="grow"><b>${esc(r.title)}</b><br><span class="muted small">${r.time ? esc(r.time) + ' · ' : ''}${r.ingredients.length} інгр.${r.ingredients.length ? ' · ' + esc(r.ingredients.slice(0, 3).join(', ')) : ''}</span></span>${icon('chev', 18)}</button>`).join('')}</div>`;
 }
 
@@ -131,10 +131,12 @@ function recipeForm(r) {
 on('recipeForm', () => recipeForm());
 on('aiKind', (el) => { S.ui.aiKind = el.dataset.v; S.render(); });
 
-function aiPreview(sh, r) {
+function aiPreview(sh, r, note) {
   const safe = /^https?:\/\//i.test(r.source_url || '') ? r.source_url : '';
   sh.innerHTML = `<div class="grab"></div>
-    <div class="muted small">✨ ШІ знайшов для вас</div>
+    ${/^https:\/\//.test(r.image || '') ? `<img class="rec-img" src="${esc(r.image)}" alt="" loading="lazy">` : ''}
+    ${note ? `<div class="info-bar small">🌐 ${note === 'no_translation' ? 'Рецепт англійською. Щоб він був українською, додай безкоштовний ключ Gemini (див. README).' : 'Переклад зараз недоступний, показую оригінал.'}</div>` : ''}
+    <div class="muted small">✨ Знайшли для вас</div>
     <h3 class="h2" style="margin:4px 0 6px">${esc(r.title)}</h3>
     ${r.description ? `<p class="muted" style="margin:0 0 8px">${esc(r.description)}</p>` : ''}
     <div class="row gap wrap">${r.time ? `<span class="chip">⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span class="chip">🍽 ${esc(r.servings)}</span>` : ''}</div>
@@ -148,25 +150,25 @@ function aiPreview(sh, r) {
     e.target.disabled = true;
     const ok = await act({ type: 'add', col: 'recipes', item: {
       title: r.title, description: r.description, time: r.time, servings: r.servings, ingredients: r.ingredients,
-      steps: r.steps.map((x, i) => `${i + 1}. ${x}`).join('\n'), link: safe, source: r.source_name, ai: true,
+      steps: r.steps.map((x, i) => `${i + 1}. ${x}`).join('\n'), link: safe, source: r.source_name, ai: true, image: r.image || '', ext: r.ext || '',
     } });
     if (ok) { closeSheet(); toast('Рецепт додано ✨'); } else e.target.disabled = false;
   };
 }
 async function aiSearch(sh) {
   sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'happy', size: 110, bob: true })}
-    <div class="spin"></div><b>ШІ шукає рецепт в інтернеті…</b><p class="muted small">Зазвичай це 10–30 секунд</p></div>`;
+    <div class="spin"></div><b>Шукаємо рецепт в інтернеті…</b><p class="muted small">Кілька секунд</p></div>`;
   try {
     const res = await fetch('/api/recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('aiKind', 'any') }) });
     const data = await res.json().catch(() => ({}));
     if (!sh.isConnected) return;
     if (!res.ok) {
-      const msg = data.error === 'ai_not_configured' ? 'ШІ ще не підключено. Додай ключ ANTHROPIC_API_KEY у налаштуваннях проєкту на Vercel (див. README).' : data.error === 'not_configured' ? 'Сервер ще не підключено до бази даних.' : data.error || 'Не вдалося звʼязатися із сервером.';
+      const msg = data.error === 'not_configured' ? 'Сервер ще не підключено до бази даних.' : data.error || 'Не вдалося звʼязатися із сервером.';
       sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div><button class="btn secondary block" data-again>Спробувати ще</button>`;
       sh.querySelector('[data-again]').onclick = () => aiSearch(sh);
       return;
     }
-    aiPreview(sh, data.recipe);
+    aiPreview(sh, data.recipe, data.note);
   } catch {
     if (!sh.isConnected) return;
     sh.innerHTML = `<div class="grab"></div><p class="center pad">Немає звʼязку. Перевір інтернет.</p><button class="btn secondary block" data-again>Спробувати ще</button>`;
@@ -179,6 +181,7 @@ on('recipe', (el) => {
   if (!r) return;
   const safeLink = /^https?:\/\//i.test(r.link || '') ? r.link : '';
   openSheet(`<div class="sheet-h"><h3>${esc(r.title)}</h3><button class="icon-btn sm" data-edit aria-label="Редагувати">${icon('pencil', 18)}</button></div>
+    ${/^https:\/\//.test(r.image || '') ? `<img class="rec-img" src="${esc(r.image)}" alt="" loading="lazy">` : ''}
     ${r.description ? `<p class="muted" style="margin:0 0 8px">${esc(r.description)}</p>` : ''}
     ${r.time || r.servings ? `<div class="row gap wrap">${r.time ? `<span class="chip">⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span class="chip">🍽 ${esc(r.servings)}</span>` : ''}</div>` : ''}
     ${r.ingredients.length ? `<h4 class="sub-h">Інгредієнти</h4><ul class="ing">${r.ingredients.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
