@@ -977,3 +977,27 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .p-mood-f .hami { width: 44px; }
 .tile-ic.spr { background: none !important; width: auto; height: auto; overflow: visible; margin: -8px 0 -4px -6px; }
 .shop-hami { flex: none; margin: -6px 0 -6px -6px; }
+
+/* effects around Хамі */
+.pet-scene .fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.pet-scene .fx i { position: absolute; bottom: -10%; font-style: normal; font-size: 18px; opacity: 0; animation: fxUp 6s linear infinite; animation-delay: calc(var(--i) * -0.68s); }
+.pet-scene .fx i:nth-child(1) { left: 12%; } .pet-scene .fx i:nth-child(2) { left: 26%; font-size: 14px; } .pet-scene .fx i:nth-child(3) { left: 38%; font-size: 20px; }
+.pet-scene .fx i:nth-child(4) { left: 52%; font-size: 13px; } .pet-scene .fx i:nth-child(5) { left: 64%; } .pet-scene .fx i:nth-child(6) { left: 76%; font-size: 15px; }
+.pet-scene .fx i:nth-child(7) { left: 86%; font-size: 21px; } .pet-scene .fx i:nth-child(8) { left: 20%; font-size: 16px; } .pet-scene .fx i:nth-child(9) { left: 70%; font-size: 12px; }
+@keyframes fxUp { 0% { transform: translateY(0) translateX(0) rotate(0); opacity: 0; } 12% { opacity: .95; } 50% { transform: translateY(-130px) translateX(10px) rotate(14deg); } 85% { opacity: .8; } 100% { transform: translateY(-260px) translateX(-8px) rotate(-10deg); opacity: 0; } }
+.pet-scene .fx-snow i, .pet-scene .fx-leaves i, .pet-scene .fx-flowers i, .pet-scene .fx-confetti i { bottom: auto; top: -10%; animation-name: fxDown; }
+@keyframes fxDown { 0% { transform: translateY(0) rotate(0); opacity: 0; } 12% { opacity: .95; } 50% { transform: translateY(130px) translateX(-12px) rotate(120deg); } 88% { opacity: .85; } 100% { transform: translateY(260px) translateX(10px) rotate(240deg); opacity: 0; } }
+.pet-scene .fx-fireflies i { color: #FFE680; text-shadow: 0 0 8px #FFE680, 0 0 16px #FFD23F; font-size: 22px !important; animation-name: fxFly; bottom: auto; top: calc(15% + var(--i) * 8%); }
+@keyframes fxFly { 0%, 100% { opacity: 0; transform: translate(0, 0); } 25% { opacity: 1; } 50% { transform: translate(18px, -14px); opacity: .4; } 75% { opacity: 1; transform: translate(-10px, 8px); } }
+.pet-scene .fx-fire i { font-size: 16px !important; }
+.pet-scene .pet-otter { position: relative; z-index: 2; }
+.wardrobe-grid.poses .wd { min-height: 108px; }
+.wardrobe-grid .wd .hami { width: 56px; }
+
+/* iOS date/time inputs must not push forms wider than the screen */
+.sheet, .sheet-body, .form, .field { min-width: 0; max-width: 100%; }
+.sheet { overflow-x: hidden; }
+.input[type=date], .input[type=time] { display: block; width: 100%; min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; text-align: left; box-sizing: border-box; }
+.input[type=date]::-webkit-date-and-time-value, .input[type=time]::-webkit-date-and-time-value { text-align: left; }
+.field > span { overflow-wrap: anywhere; }
+.pet-scene .tap-pill, .pet-scene > .meals, .pet-scene .wardrobe, .pet-scene .hungry-tag { z-index: 3; }

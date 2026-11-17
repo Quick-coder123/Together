@@ -70,9 +70,15 @@ function stepsCard(r, pid) {
 }
 
 const em = (slot, id) => itemOf(slot, id)?.e || '';
+const FX = { sparkles: '✨', hearts: '💕 💖 💗', stars: '⭐ 🌟', bubbles: '🫧', notes: '🎵 🎶', snow: '❄️', fireflies: '•', fire: '🔥', flowers: '🌸 🌺', confetti: '🎊 🎉', leaves: '🍃 🍂', butterflies: '🦋', gems: '💎', rainbow: '🌈 ✨' };
+function fxLayer(fx) {
+  if (!fx || fx === 'none' || !FX[fx]) return '';
+  const list = FX[fx].split(' ');
+  return `<span class="fx fx-${fx}" aria-hidden="true">${Array.from({ length: 9 }, (_, i) => `<i style="--i:${i}">${list[i % list.length]}</i>`).join('')}</span>`;
+}
 function petSvg(look, pose, color, size) {
   const c = look.skin && look.skin !== 'mood' ? look.skin : color;
-  return hami(pose, { size, color: c, bob: true, hat: em('hat', look.hat), near: em('hand', look.hand) });
+  return hami(pose, { size, color: c, bob: true });
 }
 const DECO = { forest: '🌿 🍃', meadow: '🌼 🌷 🐝', beach: '☀️ 🌊 🐚', sakura: '🌸 🌸 🌸', snow: '❄️ ⛄ ❄️', sunset: '🌅 🕊️', night: '🌙 ✨ ⭐', space: '🪐 ✨ 🌠', aurora: '✨ 🌌 ✨' };
 const sceneDeco = (sc) => `<span class="deco" aria-hidden="true">${(DECO[sc] || '').split(' ').map((e, i) => `<i style="--i:${i}">${e}</i>`).join('')}</span>`;
@@ -85,11 +91,11 @@ function petCard(r, t) {
   const myMood = r.moods[S.me.id];
   const todayMood = myMood?.date === t ? myMood.value : null;
   const hungry = !!pet.lastFed && isHungry(pet, t);
+  const look = lookOf(pet);
   const h = kyivHour();
   const night = (h >= 23 || h < 7) && nMeals > 0;
-  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood ? MOOD_POSE[todayMood] : nMeals === 3 ? 'joy' : 'cool';
+  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood ? MOOD_POSE[todayMood] : look.pose || 'cool';
   const color = hungry ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
-  const look = lookOf(pet);
   const tasks = tasksFor(t);
   const claimed = r.daily?.[t]?.[S.me.id]?.claimed || {};
   const doneN = tasks.filter((k) => claimed[k]).length;
@@ -103,7 +109,7 @@ function petCard(r, t) {
       <button class="icon-btn sm" data-a="petHelp" aria-label="Як це працює">${icon('help', 20)}</button>
     </div>
     <div class="muted small">${esc(pet.name)} · ${lv.stage} · рівень ${lv.level}</div>
-    <div class="pet-scene scene-${look.scene} ${hungry ? 'hungry' : ''}" id="stage" data-a="play">${sceneDeco(look.scene)}
+    <div class="pet-scene scene-${look.scene} ${hungry ? 'hungry' : ''}" id="stage" data-a="play">${sceneDeco(look.scene)}${fxLayer(look.fx)}
       <div class="meals">${!meals[cur] ? `<button class="chip warn" data-a="feed">🦗 ${MEALS[cur].name}</button>` : `<span class="chip ok">${icon('check', 14)} ${nMeals === 3 ? 'Ситий на весь день' : 'Нагодований'}</span>`}
         <span class="meal-dots">${Object.entries(MEALS).map(([k, m]) => `<i class="${meals[k] ? 'on' : k === cur ? 'now' : ''}" title="${m.name}">${m.e}</i>`).join('')}</span></div>
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
@@ -335,7 +341,7 @@ on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за ул�
   <p>🎮 <b>Ігри</b> — +${XP.game} за перемогу (до ${XP.gameDay} на день) і знахідка в колекцію. Ігор 11, щоразу випадає інша.</p>
   <p>💞 <b>Справжні зустрічі</b> важать більше: «Були тут» на місці — +${XP.visit}, спільний чек-ін тижня — +${XP.checkin}.</p>
   <p>🏅 <b>Нагороди</b> за серії, перемоги, записки, побачення й колекцію — дають досвід і відкривають особливі речі.</p>
-  <p>👕 <b>Гардероб</b>: щось на кепку, річ поруч із Хамі, колір шкіри й фон. Відкриваються з рівнями й нагородами.</p>
+  <p>👕 <b>Гардероб</b>: улюблена поза Хамі, колір, чарівний ефект навколо (сердечка, зірочки, метелики…) і фон. Відкриваються з рівнями й нагородами.</p>
   <p>🦎 <b>Настрій Хамі</b> видно одразу: чекає їжу — задумався, голодний — втомлений, ситий на весь день — радіє, а вночі спить.</p>
   <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10). Корона — на 8 рівні.</p></div>
   <button class="btn block mt" data-close>Зрозуміло</button>`, (el) => { el.querySelector('[data-close]').onclick = closeSheet; }));
@@ -352,32 +358,39 @@ on('tasks', () => {
     ${(() => { const pid = partnerId(); if (!pid) return ''; const pd = S.room.daily?.[t]?.[pid]?.claimed || {}; const n = tasksFor(t).filter((k) => pd[k]).length; return `<div class="team-box mt">${S.room.daily?.[t]?._team ? '🤝 Командний бонус сьогодні отримано!' : `🤝 ${esc(partner().name)}: ${n}/3 завдань`}</div>`; })()}`);
 });
 
-function wardrobeSheet(slot = 'hat') {
-  const pet = S.room.pet;
-  const look = lookOf(pet);
-  const lv = levelInfo(pet.xp).level;
-  const items = ITEMS.filter((x) => x.slot === slot);
-  const swatch = (it) => (it.slot === 'skin' ? (it.e.startsWith('#') ? `<span class="sw" style="background:${it.e}"></span>` : `<span class="wd-e">${it.e}</span>`) : `<span class="wd-e">${it.e || '🚫'}</span>`);
-  openSheet(`<div class="sheet-h"><h3>Гардероб</h3><span class="chip">рівень ${lv}</span></div>
-    <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${petSvg(look, 'cool', 'green', 170)}</div>
-    <div class="wd-tabs">${Object.entries(SLOTS).map(([k, n]) => `<button class="pill ${k === slot ? 'on' : ''}" data-slot="${k}">${n}</button>`).join('')}</div>
-    <div class="wardrobe-grid">${items.map((it) => {
-      const ok = unlocked(S.room, it);
-      return `<button class="wd ${look[slot] === it.id ? 'on' : ''} ${ok ? '' : 'locked'}" data-id="${it.id}" ${ok ? '' : 'data-locked="1"'}>
-        ${swatch(it)}<span>${esc(it.name)}</span>${ok ? '' : `<span class="muted xs">${icon('lock', 11)} ${esc(unlockText(it.unlock))}</span>`}</button>`;
-    }).join('')}</div>`, (el) => {
-    el.querySelectorAll('[data-slot]').forEach((b) => (b.onclick = () => wardrobeSheet(b.dataset.slot)));
-    el.querySelectorAll('[data-id]').forEach((b) => (b.onclick = async () => {
-      if (b.dataset.locked) { const it = itemOf(slot, b.dataset.id); return toast(`Відкриється: ${unlockText(it.unlock)}`); }
-      if (await act({ type: 'equip', slot, id: b.dataset.id })) { const y = el.closest('.sheet')?.scrollTop; wardrobeSheet(slot); const sh = document.querySelector('.sheet'); if (sh && y) sh.scrollTop = y; }
-    }));
+function wardrobeSheet(slot = 'pose') {
+  let cur = slot;
+  const body = (look) => {
+    const lv = levelInfo(S.room.pet.xp).level;
+    const swatch = (it) => (it.slot === 'pose' ? hami(it.e, { size: 56 }) : it.slot === 'skin' && it.e.startsWith('#') ? `<span class="sw" style="background:${it.e}"></span>` : `<span class="wd-e">${it.e}</span>`);
+    return `<div class="sheet-h"><h3>Гардероб</h3><span class="chip">рівень ${lv}</span></div>
+      <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${fxLayer(look.fx)}${petSvg(look, look.pose, 'green', 170)}</div>
+      <div class="wd-tabs">${Object.entries(SLOTS).map(([k, n]) => `<button class="pill ${k === cur ? 'on' : ''}" data-slot="${k}">${n}</button>`).join('')}</div>
+      <div class="wardrobe-grid ${cur === 'pose' ? 'poses' : ''}">${ITEMS.filter((x) => x.slot === cur).map((it) => {
+        const ok = unlocked(S.room, it);
+        return `<button class="wd ${look[cur] === it.id ? 'on' : ''} ${ok ? '' : 'locked'}" data-id="${it.id}" ${ok ? '' : 'data-locked="1"'}>
+          ${swatch(it)}<span>${esc(it.name)}</span>${ok ? '' : `<span class="muted xs">${icon('lock', 11)} ${esc(unlockText(it.unlock))}</span>`}</button>`;
+      }).join('')}</div>`;
+  };
+  openSheet(body(lookOf(S.room.pet)), (el) => {
+    const draw = (look) => { el.innerHTML = '<div class="grab"></div>' + body(look); };
+    el.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-slot]');
+      if (t) { cur = t.dataset.slot; draw(lookOf(S.room.pet)); return; }
+      const b = e.target.closest('[data-id]');
+      if (!b) return;
+      if (b.dataset.locked) return toast(`Відкриється: ${unlockText(itemOf(cur, b.dataset.id).unlock)}`);
+      const look = { ...lookOf(S.room.pet), [cur]: b.dataset.id };
+      draw(look); // instant preview, no jump
+      if (!(await act({ type: 'equip', slot: cur, id: b.dataset.id }))) draw(lookOf(S.room.pet));
+    });
   });
 }
 on('wardrobe', (el, e) => { e.stopPropagation(); wardrobeSheet(); });
 
 function badgesSheet() {
   const got = S.room.pet.badges || {};
-  const rewardOf = (id) => ITEMS.filter((it) => it.unlock?.badge === id).map((it) => it.e.startsWith('#') ? '🎨' : it.e).join(' ');
+  const rewardOf = (id) => ITEMS.filter((it) => it.unlock?.badge === id).map((it) => (it.slot === 'pose' ? '🦎' : it.e.startsWith('#') ? '🎨' : it.e)).join(' ');
   openSheet(`<div class="sheet-h"><h3>Нагороди</h3><span class="chip">${Object.keys(got).length} / ${BADGES.length}</span></div>
     <p class="muted small">Кожна нагорода дає досвід, а деякі ще й відкривають особливі речі в гардеробі.</p>
     <div class="badges">${BADGES.map((b) => `<div class="bdg ${got[b.id] ? 'got' : ''}"><span class="bdg-e">${got[b.id] ? b.e : '🔒'}</span>
