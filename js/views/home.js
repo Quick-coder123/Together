@@ -144,8 +144,10 @@ function aiPreview(sh, r, note) {
     <h4 class="sub-h">Приготування</h4><ol class="ing">${r.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
     ${safe ? `<a class="ai-src" href="${esc(safe)}" target="_blank" rel="noopener">${icon('link', 14)} Джерело: ${esc(r.source_name || safe)}</a>` : ''}
     <button class="btn block mt" data-add>${icon('plus', 18)} Додати в наші рецепти</button>
-    <button class="btn secondary block" data-again>${icon('dice', 18)} Шукати інший</button>`;
+    <button class="btn secondary block" data-again>${icon('dice', 18)} Шукати інший</button>
+    <button class="btn ghost block" data-cancel>Не зараз</button>`;
   sh.querySelector('[data-again]').onclick = () => aiSearch(sh);
+  sh.querySelector('[data-cancel]').onclick = closeSheet;
   sh.querySelector('[data-add]').onclick = async (e) => {
     e.target.disabled = true;
     const ok = await act({ type: 'add', col: 'recipes', item: {
@@ -156,7 +158,9 @@ function aiPreview(sh, r, note) {
   };
 }
 async function aiSearch(sh) {
-  sh.innerHTML = `<div class="grab"></div><div class="center">${cookScene()}<b class="load-line">Кухар Хамі ставить каструлю…</b><p class="muted small">Кілька секунд</p></div>`;
+  sh.innerHTML = `<div class="grab"></div><div class="center">${cookScene()}<b class="load-line">Кухар Хамі ставить каструлю…</b><p class="muted small">Кілька секунд</p></div>
+    <button class="btn ghost block" data-cancel>Скасувати</button>`;
+  sh.querySelector('[data-cancel]').onclick = closeSheet;
   const lines = ['Кухар Хамі ставить каструлю…', 'Гортає кулінарну книгу…', 'Кидає щіпку солі…', 'Куштує з ложечки…', 'Прикрашає зеленню…'];
   let li = 0;
   const lt = setInterval(() => {
@@ -172,8 +176,9 @@ async function aiSearch(sh) {
     if (!sh.isConnected) return;
     if (!res.ok) {
       const msg = data.error === 'not_configured' ? 'Сервер ще не підключено до бази даних.' : data.error || 'Не вдалося звʼязатися із сервером.';
-      sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div><button class="btn secondary block" data-again>Спробувати ще</button>`;
+      sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div><button class="btn secondary block" data-again>Спробувати ще</button><button class="btn ghost block" data-cancel>Закрити</button>`;
       sh.querySelector('[data-again]').onclick = () => aiSearch(sh);
+      sh.querySelector('[data-cancel]').onclick = closeSheet;
       return;
     }
     aiPreview(sh, data.recipe, data.note);

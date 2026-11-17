@@ -152,16 +152,19 @@ export const on = (name, fn) => { H[name] = fn; };
 
 /* ---------------- sheets ---------------- */
 let sheetCleanup = null;
-export function openSheet(html, mount) {
+// Every sheet has a close button (✕) that stays even when its content is replaced.
+export function openSheet(html, mount, { closeBtn = true } = {}) {
   closeSheet();
   const bg = document.createElement('div');
   bg.className = 'sheet-bg';
-  bg.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+  bg.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${closeBtn ? `<button class="sheet-x" type="button" aria-label="Закрити">${icon('x', 18)}</button>` : ''}<div class="sheet-body"><div class="grab"></div>${html}</div></div>`;
   bg.addEventListener('click', (e) => { if (e.target === bg) closeSheet(); });
+  bg.querySelector('.sheet-x')?.addEventListener('click', closeSheet);
   document.body.appendChild(bg);
   document.body.classList.add('noscroll');
-  sheetCleanup = mount?.(bg.querySelector('.sheet')) || null;
-  return bg.querySelector('.sheet');
+  const body = bg.querySelector('.sheet-body');
+  sheetCleanup = mount?.(body) || null;
+  return body;
 }
 export function closeSheet() {
   const bg = document.querySelector('.sheet-bg');
@@ -231,6 +234,6 @@ export function openForm(cfg) {
     if (del) del.onclick = async () => { if (confirm('Точно видалити?') && (await cfg.onDelete())) closeSheet(); };
     const first = el.querySelector('input:not([type=hidden]):not([type=checkbox]),textarea');
     if (first && !cfg.noFocus && !/iPhone|iPad/.test(navigator.userAgent)) first.focus();
-  });
+  }, { closeBtn: false });
   return sheet;
 }

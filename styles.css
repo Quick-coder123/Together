@@ -739,3 +739,7 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .flame i { width: 12px; height: 18px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #FFE27A, #FF8A3D 60%, #E6566E); animation: flicker .25s ease-in-out infinite alternate; }
 .flame i:nth-child(2) { height: 22px; animation-delay: .1s; }
 @keyframes flicker { to { transform: scaleY(1.2) translateY(-2px); opacity: .85; } }
+.sheet { position: relative; }
+.sheet-x { position: absolute; right: 12px; top: 12px; z-index: 5; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--card2); color: var(--muted); border: 1px solid var(--line); }
+.sheet-x:active { transform: scale(.92); }
+.sheet-body > .sheet-h, .sheet-body > .h3:first-of-type { padding-right: 44px; }

@@ -128,7 +128,9 @@ on('randomPlace', () => {
       <div class="rnd-em">${em}</div><h2 class="h2">${esc(p.name)}</h2><div class="muted">${cat}${p.address ? ' · ' + esc(p.address) : ''}</div>
       ${p.note ? `<p class="small">${esc(p.note)}</p>` : ''}</div>
       <button class="btn block mt" data-plan>${icon('cal', 18)} Іти сьогодні</button>
-      <button class="btn secondary block" data-again>${icon('dice', 18)} Ще раз</button>`, (el) => {
+      <button class="btn secondary block" data-again>${icon('dice', 18)} Ще раз</button>
+      <button class="btn ghost block" data-cancel>Не зараз</button>`, (el) => {
+      el.querySelector('[data-cancel]').onclick = closeSheet;
       el.querySelector('[data-again]').onclick = show;
       el.querySelector('[data-plan]').onclick = async () => {
         if (await act({ type: 'update', col: 'places', id: p.id, patch: { mode: 'plan', date: today() } })) { closeSheet(); toast('Заплановано на сьогодні 💞'); }
@@ -235,7 +237,9 @@ function whereForm(sh, note = '') {
 let loadTimer;
 function whereLoading(sh, lines) {
   clearInterval(loadTimer);
-  sh.innerHTML = `<div class="grab"></div><div class="center">${mapScene()}<b class="load-line">${esc(lines[0])}</b><p class="muted small">Зазвичай 5–20 секунд</p></div>`;
+  sh.innerHTML = `<div class="grab"></div><div class="center">${mapScene()}<b class="load-line">${esc(lines[0])}</b><p class="muted small">Зазвичай 5–20 секунд</p></div>
+    <button class="btn ghost block" data-cancel>Скасувати</button>`;
+  sh.querySelector('[data-cancel]').onclick = () => { clearInterval(loadTimer); closeSheet(); };
   let i = 0;
   loadTimer = setInterval(() => {
     const el = sh.querySelector('.load-line');
@@ -275,7 +279,8 @@ async function whereSearch(sh, where) {
     if (!sh.isConnected) return;
     const msg = /Failed to fetch|NetworkError|Load failed/i.test(e.message) ? 'Немає звʼязку. Перевір інтернет.' : e.message;
     sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div>
-      <button class="btn block" data-retry>Спробувати ще</button><button class="btn secondary block" data-back>Змінити місце</button>`;
+      <button class="btn block" data-retry>Спробувати ще</button><button class="btn secondary block" data-back>Змінити місце</button><button class="btn ghost block" data-cancel>Закрити</button>`;
+    sh.querySelector('[data-cancel]').onclick = closeSheet;
     sh.querySelector('[data-retry]').onclick = () => whereSearch(sh, where);
     sh.querySelector('[data-back]').onclick = () => whereForm(sh);
   }
@@ -294,8 +299,10 @@ function whereResults(sh, data, where) {
       </div>`;
     }).join('')}</div>
     <button class="btn secondary block" data-more>${icon('dice', 18)} Інші варіанти</button>
+    <button class="btn ghost block" data-cancel>Готово, закрити</button>
     <p class="center muted small">Дані мапи © OpenStreetMap</p>`;
   sh.querySelector('[data-back]').onclick = () => whereForm(sh);
+  sh.querySelector('[data-cancel]').onclick = closeSheet;
   sh.querySelector('[data-more]').onclick = () => whereSearch(sh, where);
   sh.querySelectorAll('[data-add]').forEach((b) => b.onclick = async () => {
     const p = data.places[+b.dataset.add];
