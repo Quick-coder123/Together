@@ -16,7 +16,7 @@ export function buildIcs(room, now = Date.now()) {
   const items = itemsBetween(room, addDays(today, -60), addDays(today, 366));
   const stamp = utc(now);
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Hamelyky//UA', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-    'X-WR-CALNAME:Хамелеончики 💚', 'X-WR-TIMEZONE:Europe/Kyiv', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H'];
+    'X-WR-CALNAME:Хамелеончики 💚', 'X-WR-TIMEZONE:Europe/Kyiv', 'REFRESH-INTERVAL;VALUE=DURATION:PT15M', 'X-PUBLISHED-TTL:PT15M'];
   const seenTrip = new Set();
   for (const it of items) {
     const [col, id] = it.ref || ['x', it.title];
@@ -57,5 +57,5 @@ export async function GET(request) {
   const key = String(q.get('k') || '');
   const room = code ? await kv.get(roomKey(code)) : null;
   if (!room || !room.calKey || key !== room.calKey) return new Response('Not found', { status: 404 });
-  return new Response(buildIcs(room), { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'public, max-age=900', 'Content-Disposition': 'inline; filename="hamelyky.ics"' } });
+  return new Response(buildIcs(room), { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'CDN-Cache-Control': 'no-store', 'Content-Disposition': 'inline; filename="hamelyky.ics"' } });
 }
