@@ -3,6 +3,7 @@ import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerI
 import { esc, icon, otter, hami, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
 import { kyivHour, MEALS, mealAt, mealsOf, mealsDone, levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
 import { GAMES, pickGame } from '../games.js';
+import { petEvent } from '../petlive.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
 
 const MOOD_POSE = { great: 'great', ok: 'normal', sad: 'sad' };
@@ -115,7 +116,7 @@ function petCard(r, t) {
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
       <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🍃<span class="wd-n">${found}</span></button>
       <button class="wardrobe third" data-a="badges" aria-label="Нагороди">🏅<span class="wd-n">${Object.keys(pet.badges || {}).length}</span></button>
-      <div class="pet-otter">${petSvg(look, face, color, 170)}</div>
+      <div class="pet-otter" id="pet-live" data-base="${face}">${petSvg(look, face, color, 170)}</div>
       ${hungry && pet.lastFed ? '<span class="hungry-tag">Голодний — ігри без досвіду</span>' : ''}
       <span class="tap-pill">🎮 ГРАТИ</span>
     </div>
@@ -224,7 +225,7 @@ on('mood', async (el) => {
   const ok = await act({ type: 'mood', value: v }, { render: false });
   if (!ok) { S.room.moods[S.me.id] = prev; S.render(); return; }
   S.render();
-  toast({ great: 'Відмінно! 💚', ok: 'Норм 💛', sad: 'Обіймаю 💙' }[v]);
+  petEvent(v);
 });
 function moodBurst(btn, emojis) {
   if (!btn) return;
@@ -245,7 +246,7 @@ on('feed', async (el, e) => {
   e.stopPropagation();
   const meal = mealAt();
   if (await act({ type: 'feed' })) {
-    S.ui.petPose = { p: 'eat', until: Date.now() + 5000 }; S.render(); setTimeout(() => S.render(), 5100);
+    petEvent('feed');
     floaty('🦗'); setTimeout(() => floaty('💕'), 300);
     const n = mealsDone(S.room.pet, today());
     toast(n === 3 ? `Ситий день! +${XP.feed} досвіду${S.room.pet.streak % 7 === 0 ? ` і +${XP.streak7} за тиждень 🔥` : ''}` : `Ням! ${MEALS[meal].name} ✓ (${n}/3). Досвід — коли будуть усі 3`);
@@ -268,6 +269,7 @@ function gameSheet(game) {
       box.innerHTML = `<div class="center pad">${hami('play', { size: 100 })}<div class="muted">Зачекай…</div></div>`;
       const ok = await act({ type: 'game', game: g.id, win }, { silent: true });
       if (!box.isConnected) return;
+      setTimeout(() => petEvent(win ? 'win' : 'lose'), 400);
       const lf = S.room.pet.lastFind;
       const f = win && ok && lf?.id ? FINDS.find((x) => x.id === lf.id) : null;
       const count = f ? S.room.pet.collection[f.id] : 0;
@@ -342,6 +344,7 @@ on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за ул�
   <p>💞 <b>Справжні зустрічі</b> важать більше: «Були тут» на місці — +${XP.visit}, спільний чек-ін тижня — +${XP.checkin}.</p>
   <p>🏅 <b>Нагороди</b> за серії, перемоги, записки, побачення й колекцію — дають досвід і відкривають особливі речі.</p>
   <p>👕 <b>Гардероб</b>: улюблена поза Хамі, колір, чарівний ефект навколо (сердечка, зірочки, метелики…) і фон. Відкриваються з рівнями й нагородами.</p>
+  <p>👆 <b>Хамі живий</b>: торкнись — підстрибне, затисни або погладь пальцем — муркоче, а якщо смикати занадто часто — розсердиться 😤 Сам він теж щось робить і підказує. Гра — кнопка «ГРАТИ».</p>
   <p>🦎 <b>Настрій Хамі</b> видно одразу: чекає їжу — задумався, голодний — втомлений, ситий на весь день — радіє, а вночі спить.</p>
   <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10). Корона — на 8 рівні.</p></div>
   <button class="btn block mt" data-close>Зрозуміло</button>`, (el) => { el.querySelector('[data-close]').onclick = closeSheet; }));
