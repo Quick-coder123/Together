@@ -27,9 +27,9 @@ export async function POST(request) {
   const body = await request.text();
   const ok = verifySignature(request.headers.get('upstash-signature'), body)
     || (process.env.CRON_SECRET && request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`);
-  if (!ok) return json({ error: 'forbidden' }, 403);
+  if (!ok) { console.warn('tick forbidden', !!request.headers.get('upstash-signature')); return json({ error: 'forbidden' }, 403); }
   const r = await runTick();
-  if (r.sent) console.log('tick', JSON.stringify(r));
+  console.log('tick ok', JSON.stringify(r));
   return json({ ok: true, ...r });
 }
 export const GET = () => json({ error: 'forbidden' }, 403);
