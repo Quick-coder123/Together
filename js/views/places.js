@@ -95,16 +95,25 @@ export function placeForm(p, preset = {}) {
       { key: 'time', label: 'Час', type: 'time', value: v.time },
       { key: 'address', label: 'Адреса або посилання', value: v.address, max: 300, placeholder: 'вул. Хрещатик, 1 або https://…' },
       { key: 'note', label: 'Нотатка', type: 'textarea', value: v.note, max: 400 },
-      ...(p ? [{ key: 'visited', label: 'Ми тут уже були', type: 'check', value: p.visited }, { key: 'rating', label: 'Оцінка', type: 'seg', value: p.rating || '', options: [['', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']] }] : []),
+      ...(p ? [{ key: 'visited', label: 'Ми тут уже були', type: 'check', value: p.visited }, { key: 'rating', label: 'Оцінка', type: 'seg', value: p.rating || '', options: [['', '—'], ['1', '1★'], ['2', '2★'], ['3', '3★'], ['4', '4★'], ['5', '5★']] }] : []),
     ],
     onSubmit: (val) => {
       if (val.mode === 'plan' && !val.date) { toast('Для запланованого обери дату'); return false; }
       if ('rating' in val) val.rating = val.rating ? Number(val.rating) : null;
+      if (val.mode === 'spont') { val.date = null; val.time = null; }
       return p ? act({ type: 'update', col: 'places', id: p.id, patch: val }) : act({ type: 'add', col: 'places', item: val });
     },
+    extra: p && p.mode === 'plan' && !p.visited ? [{ label: `${icon('x', 18)} Скасувати похід`, onClick: () => cancelPlan(p) }] : [],
     onDelete: p ? () => act({ type: 'remove', col: 'places', id: p.id }) : null,
   });
 }
+async function cancelPlan(p) {
+  if (!confirm(`Скасувати похід у «${p.name}»? Місце залишиться у «Спонтанне».`)) return false;
+  const ok = await act({ type: 'update', col: 'places', id: p.id, patch: { mode: 'spont', date: null, time: null } });
+  if (ok) toast('Похід скасовано — місце чекає у «Спонтанне» ⚡');
+  return ok;
+}
+on('cancelPlan', (el) => { const p = S.room.places.find((x) => x.id === el.dataset.id); if (p) cancelPlan(p); });
 on('addPlace', () => placeForm());
 on('editPlace', (el) => placeForm(S.room.places.find((x) => x.id === el.dataset.id)));
 on('visitPlace', (el) => {

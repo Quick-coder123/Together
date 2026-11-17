@@ -235,6 +235,7 @@ export function openForm(cfg) {
     <form class="form" novalidate>
       ${cfg.fields.map(field).join('')}
       <button class="btn block" type="submit">${esc(cfg.submitText || 'Зберегти')}</button>
+      ${(cfg.extra || []).map((x, i) => `<button class="btn ${x.cls || 'secondary'} block" type="button" data-extra="${i}">${x.label}</button>`).join('')}
       ${cfg.onDelete ? `<button class="btn danger block" type="button" data-del>${icon('trash', 18)} Видалити</button>` : ''}
     </form>`, (el) => {
     el.querySelector('[data-close]').onclick = closeSheet;
@@ -270,6 +271,7 @@ export function openForm(cfg) {
       sending = true;
       try { if (await cfg.onSubmit(vals)) closeSheet(); } finally { sending = false; }
     };
+    el.querySelectorAll('[data-extra]').forEach((b) => { b.onclick = async () => { b.disabled = true; if (await cfg.extra[+b.dataset.extra].onClick()) closeSheet(); else b.disabled = false; }; });
     const del = el.querySelector('[data-del]');
     if (del) del.onclick = async () => { if (confirm('Точно видалити?') && (await cfg.onDelete())) closeSheet(); };
     const first = el.querySelector('input:not([type=hidden]):not([type=checkbox]),textarea');

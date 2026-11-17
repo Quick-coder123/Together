@@ -132,6 +132,10 @@ export function messagesFor(action, before, after, mid) {
         const openWas = before.shopping.filter((x) => x.cat === it?.cat && !x.done).length;
         if (it && openWas > 0 && openNow === 0) return out(`✅ ${me} купує все зі списку ${it.cat === 'other' ? 'покупок' : 'продуктів'}. Можна не йти в магазин!`, { title: 'Все куплено', tag: 'shop-' + it.cat });
       }
+      if (a.col === 'places' && a.patch?.mode === 'spont') {
+        const was = before.places.find((x) => x.id === a.id), it = after.places.find((x) => x.id === a.id);
+        if (was?.mode === 'plan' && it) return out(`↩️ ${me} скасовує похід: ${it.name}${was.date ? ' (' + fmtDay(was.date) + ')' : ''}. Місце залишилось у списку спонтанних.`, { tag: 'place' });
+      }
       if (a.col === 'blind' && a.patch?.revealed) return out(`🎭 ${me} розкриває план побачення наосліп — подивись!`, { tag: 'blind' });
       return [];
     }
