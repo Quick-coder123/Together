@@ -1,4 +1,4 @@
-import { S, H, on, go, create, join, toast, refresh, partnerId, partner, meM, LS } from './store.js';
+import { S, H, on, go, create, join, toast, refresh, partnerId, partner, meM, LS, peek, signInAs } from './store.js';
 import { esc, icon, avatar, otter } from './ui.js';
 import { meView } from './views/me.js';
 import { placesView } from './views/places.js';
@@ -13,23 +13,40 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyThe
 /* ---------------- welcome ---------------- */
 function welcomeView() {
   const mode = S.ui.welcome || 'start';
-  return `<div class="welcome">
-    <div class="welcome-art">${otter({ face: 'love', pose: 'wave', water: true, size: 170, bob: true, color: 'green' })}</div>
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const head = `<div class="welcome-art">${otter({ face: 'love', pose: 'wave', water: true, size: 170, bob: true, color: 'green' })}</div>
     <h1 class="logo big">Хамелеончики<i class="logo-h">${icon('heart', 22)}</i></h1>
-    <p class="lead">Твій затишний куточок для двох</p>
-    <label class="field"><span>Як тебе звати?</span><input class="input" id="w-name" maxlength="30" autocomplete="given-name" value="${esc(S.me.name)}" placeholder="Наприклад, Юлія"></label>
-    ${mode === 'join' ? `
-      <label class="field"><span>Код від твоєї пари</span><input class="input code-input" id="w-code" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABC123"></label>
-      <button class="btn block" data-a="wJoin">Приєднатися ❤️</button>
-      <button class="btn ghost block" data-a="wMode" data-v="start">Назад</button>`
-    : `
-      <button class="btn block" data-a="wCreate">Створити нашу пару</button>
-      <button class="btn secondary block" data-a="wMode" data-v="join">У мене є код від пари</button>`}
+    <p class="lead">Твій затишний куточок для двох</p>`;
+  if (mode === 'join') {
+    return `<div class="welcome">${head}
+      <label class="field"><span>Код вашої пари</span><input class="input code-input" id="w-code" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABC123" value="${esc(S.ui.wCode || '')}"></label>
+      <button class="btn block" data-a="wPeek">Далі</button>
+      <button class="btn ghost block" data-a="wMode" data-v="start">Назад</button>
+      <p class="muted small center mt">Код є в «Ще → Налаштування → Код пари» на телефоні, де пару вже створено.</p></div>`;
+  }
+  if (mode === 'pick') {
+    const p = S.ui.wPeek;
+    const free = p.members.length < 2;
+    return `<div class="welcome">${head}
+      <h3 class="h3 center">Хто ти в цій парі?</h3>
+      <div class="pick-list">${p.members.map((m) => `<button class="pick" data-a="wPick" data-id="${esc(m.id)}">${avatar(m, m.id, 44)}<span class="grow"><b>Це я — ${esc(m.name)}</b><br><span class="muted small">Увійти з цього пристрою</span></span>${icon('chev', 18)}</button>`).join('')}</div>
+      ${free ? `<div class="divider-t">або</div>
+        <label class="field"><span>Я — друга половинка. Як тебе звати?</span><input class="input" id="w-name" maxlength="30" autocomplete="given-name" placeholder="Наприклад, Юлія" value="${esc(S.me.name)}"></label>
+        <button class="btn secondary block" data-a="wJoin">Приєднатися ❤️</button>` : ''}
+      <button class="btn ghost block" data-a="wMode" data-v="join">Інший код</button></div>`;
+  }
+  return `<div class="welcome">${head}
+    ${standalone ? `<div class="info-bar small">💡 Уже користувалися в браузері? Натисни «У нас уже є пара» і введи код — усі ваші дані підтягнуться.</div>` : ''}
+    <button class="btn block" data-a="wMode" data-v="join">${icon('heart', 18)} У нас уже є пара</button>
+    <div class="divider-t">або</div>
+    <label class="field"><span>Як тебе звати?</span><input class="input" id="w-name" maxlength="30" autocomplete="given-name" value="${esc(S.me.name)}" placeholder="Наприклад, Віталій"></label>
+    <button class="btn secondary block" data-a="wCreate">Створити нову пару</button>
     <p class="muted small center mt">Місця й побачення, спільні покупки, вішліст, подорожі, скарбнички та хамелеон, що змінює колір під ваш настрій — на двох.</p>
   </div>`;
 }
-on('wMode', (el) => { S.me.name = nameVal(); S.ui.welcome = el.dataset.v; render(); });
 const nameVal = () => document.getElementById('w-name')?.value.trim() || '';
+const codeVal = () => (document.getElementById('w-code')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+on('wMode', (el) => { if (document.getElementById('w-name')) S.me.name = nameVal(); S.ui.welcome = el.dataset.v; render(); });
 on('wCreate', async (el) => {
   const name = nameVal();
   if (!name) return toast('Спершу введи своє імʼя');
@@ -37,13 +54,25 @@ on('wCreate', async (el) => {
   try { S.me.name = name; LS.set('me', S.me); await create(name); go('me'); toast('Пару створено! 💌'); }
   catch (e) { toast(e.message); el.disabled = false; }
 });
-on('wJoin', async (el) => {
-  const name = nameVal();
-  const code = (document.getElementById('w-code')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!name) return toast('Спершу введи своє імʼя');
+on('wPeek', async (el) => {
+  const code = codeVal();
   if (code.length !== 6) return toast('Код має складатися з 6 символів');
   el.disabled = true;
-  try { S.me.name = name; LS.set('me', S.me); await join(code, name); go('me'); toast('Ви разом! ❤️'); }
+  try { S.ui.wCode = code; S.ui.wPeek = await peek(code); S.ui.welcome = 'pick'; render(); }
+  catch (e) { toast(e.message); el.disabled = false; }
+});
+on('wPick', async (el) => {
+  const m = S.ui.wPeek.members.find((x) => x.id === el.dataset.id);
+  if (!m) return;
+  el.disabled = true;
+  try { await signInAs(S.ui.wCode, m); S.ui.welcome = 'start'; go('me'); toast(`Привіт, ${m.name}! 💚`); }
+  catch (e) { toast(e.message); el.disabled = false; }
+});
+on('wJoin', async (el) => {
+  const name = nameVal();
+  if (!name) return toast('Введи своє імʼя');
+  el.disabled = true;
+  try { S.me.name = name; LS.set('me', S.me); await join(S.ui.wCode, name); S.ui.welcome = 'start'; go('me'); toast('Ви разом! ❤️'); }
   catch (e) { toast(e.message); el.disabled = false; }
 });
 
@@ -119,7 +148,7 @@ document.addEventListener('submit', async (e) => {
 });
 document.addEventListener('input', (e) => {
   if (e.target.id === 'place-q') { S.ui.placeQ = e.target.value; render(); }
-  if (e.target.id === 'w-code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (e.target.id === 'w-code') { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); S.ui.wCode = e.target.value; }
 });
 document.addEventListener('change', (e) => {
   if (e.target.id === 'ava-file') onAvatarFile(e.target.files[0]);

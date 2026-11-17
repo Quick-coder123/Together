@@ -672,3 +672,7 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .pet-foot { flex-direction: column; align-items: stretch; gap: 10px; }
 .pet-foot > .grow { width: 100%; }
 .pet-foot .pill-btn { width: 100%; justify-content: center; }
+.pick-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 6px; }
+.pick { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 1px solid var(--line2); text-align: left; }
+.pick:active { transform: scale(.98); }
+.welcome .info-bar { margin-bottom: 12px; }

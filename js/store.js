@@ -70,6 +70,17 @@ export async function join(code, name) {
   setRoom(r);
 }
 
+export async function peek(code) {
+  return call('GET', null, `?code=${encodeURIComponent(code)}&peek=1`);
+}
+// Become an existing member of the pair on this device (Safari vs home-screen app keep separate storage).
+export async function signInAs(code, member) {
+  S.me = { id: member.id, name: member.name };
+  LS.set('me', S.me);
+  const r = await call('GET', null, `?code=${encodeURIComponent(code)}&member=${encodeURIComponent(member.id)}&today=${today()}`);
+  setRoom(r);
+}
+
 export async function act(action, { silent = false, render = true } = {}) {
   if (!S.code) return false;
   try {

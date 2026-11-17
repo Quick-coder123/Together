@@ -72,6 +72,8 @@ export async function GET(request) {
   if (code.length !== 6) return json({ error: 'Невірний код' }, 400);
   const state = await load(code);
   if (!state) return json({ error: 'Пару не знайдено' }, 404);
+  // Sign-in on another device / home-screen app: show who is in the pair, so the person can pick themselves.
+  if (q.get('peek')) return json({ code, members: Object.entries(state.members).map(([id, m]) => ({ id, name: m.name, avatar: m.avatar || null })) });
   if (!state.members[mid]) return json({ error: 'not_member' }, 403);
   if (q.get('rev') && Number(q.get('rev')) === state.rev && !q.get('force')) return json({ unchanged: true, rev: state.rev });
   return json(viewFor(state, mid, today));
