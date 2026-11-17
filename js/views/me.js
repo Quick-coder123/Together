@@ -114,7 +114,7 @@ function moodCard(r, pid, t) {
     <div class="moods">${Object.entries(MOODS).map(([k, label]) => `
       <button class="mood m-${k} ${mine?.date === t && mine.value === k ? 'on' : ''}" data-a="mood" data-v="${k}">
         <span class="mood-face">${otter({ face: MOOD_FACE[k], size: 38 })}</span>${label}</button>`).join('')}</div>
-    ${pid ? partnerMood(r, pid, theirs, t) : ''}
+    ${pid ? partnerMood(r, pid, theirs, t) : `<div class="p-mood old"><span class="p-mood-f">${otter({ face: 'ok', size: 40 })}</span><span class="grow"><span class="muted small">Настрій партнера</span><br><b>Тут зʼявиться, коли пара приєднається</b></span></div>`}
   </section>`;
 }
 
