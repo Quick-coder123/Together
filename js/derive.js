@@ -1,5 +1,5 @@
 // Values computed from the room: calendar items, stats, first steps.
-import { addDays, dayDiff } from '/lib/core.js';
+import { addDays, dayDiff } from '../lib/core.js';
 
 export const KIND = {
   date: { label: 'Побачення', color: '#E6566E', emoji: '💞' },

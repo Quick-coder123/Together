@@ -1,10 +1,12 @@
 // Push subscriptions: GET → public key; POST subscribe / unsubscribe / test.
 import { getVapid, addSub, removeSub, sendTo, hasSubs, kv, roomKey } from './_notify.js';
+import { ensureSchedule } from './_qstash.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const cleanCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 
 export async function GET() {
+  await ensureSchedule().catch((e) => console.error('schedule', e.message));
   try { return json({ publicKey: (await getVapid()).publicKey }); }
   catch (e) { console.error(e); return json({ error: 'not_configured' }, 503); }
 }

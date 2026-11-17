@@ -110,6 +110,7 @@ export const PALETTE = {
   pink: ['#F28DB2', '#C95A86', '#FFE0EC'],
   grey: ['#9FB3A3', '#6F8475', '#E3ECE5'],
   violet: ['#B48CF0', '#7E57C2', '#EFE4FF'],
+  mint: ['#6FD3BC', '#2F9C84', '#DDF7F0'],
 };
 // face: happy | ok | sad | love | sleep ; pose: sit | wave ; water (kept name) → branch with leaves
 export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color, branch: showBranch = true } = {}) {
@@ -253,4 +254,9 @@ export function scanScene() {
     <div class="scan-buddy">${nyshporka(96)}</div>
     <div class="scan-sparks"><span>✨</span><span>🏷️</span><span>📸</span></div>
   </div>`;
+}
+
+/* ---------------- «Шептунчик» — the whispering helper ---------------- */
+export function whisperer(size = 64, face = 'happy') {
+  return `<span class="wh-av" style="--s:${size}px">${otter({ face, size, color: 'mint', branch: size > 50 })}<span class="wh-ps">ш-ш</span></span>`;
 }

@@ -188,15 +188,17 @@ function calendarView() {
     <button class="icon-btn lg" data-a="eventForm" data-d="${sel}" aria-label="Нова подія">${icon('calheart', 22)}</button></div>
   <div class="cal-tools"><div class="seg"><button class="seg-b ${mode === 'month' ? 'on' : ''}" data-a="calMode" data-v="month">Місяць</button><button class="seg-b ${mode === 'week' ? 'on' : ''}" data-a="calMode" data-v="week">Тиждень</button></div>
     <button class="btn secondary ${hidden.length ? 'on' : ''}" data-a="calFilter">${icon('filter', 18)} Фільтр</button></div>
-  ${body}`;
+  ${body}
+  <button class="sync-card" data-a="calSync"><span class="ic-box">${icon('cal', 20)}</span><span class="grow"><b>Додати в Google / iPhone Календар</b><br><span class="muted small">Плани зʼявлятимуться там самі</span></span>${icon('chev', 18)}</button>`;
 }
 
 function dayList(d, items, compact = false) {
   const t = today();
   const title = `${WEEKDAYS[(new Date(d + 'T12:00:00').getDay() + 6) % 7].toUpperCase()}, ${fmtDate(d).toUpperCase()}${d === t ? ' · СЬОГОДНІ' : ''}`;
   return `<div class="day-h"><span>${title}</span><button class="icon-btn sm" data-a="eventForm" data-d="${d}" aria-label="Додати">${icon('plus', 18)}</button></div>
-  ${items.length ? `<section class="card list">${items.map((x) => `<button class="li" data-a="calItem" data-ref="${x.ref ? x.ref.join(':') : ''}">
-      <span class="kdot" style="background:${KIND[x.kind].color}"></span><span class="grow"><b>${esc(x.title)}</b><br><span class="muted small">${KIND[x.kind].label}${x.time ? ' · ' + x.time : ''}</span></span></button>`).join('')}</section>`
+  ${items.length ? `<section class="card list">${items.map((x) => `<div class="li cal-li"><button class="grow left row" data-a="calItem" data-ref="${x.ref ? x.ref.join(':') : ''}">
+      <span class="kdot" style="background:${KIND[x.kind].color}"></span><span class="grow"><b>${esc(x.title)}</b><br><span class="muted small">${KIND[x.kind].label}${x.time ? ' · ' + x.time : ''}</span></span></button>
+      <a class="gcal-b" href="${esc(gcalLink(x))}" target="_blank" rel="noopener" aria-label="Додати в Google Календар" title="Додати в Google Календар">${icon('cal', 16)}<i>G</i></a></div>`).join('')}</section>`
     : compact ? '' : `<p class="center muted">Нічого не заплановано.</p><button class="dashed-btn" data-a="eventForm" data-d="${d}">${icon('plus', 18)} Запланувати на цей день</button>`}`;
 }
 
@@ -209,12 +211,54 @@ function eventForm(e, date) {
       { key: 'date', label: 'Дата', type: 'date', value: e?.date || date || today(), required: true },
       { key: 'time', label: 'Час', type: 'time', value: e?.time },
       { key: 'note', label: 'Нотатка', type: 'textarea', value: e?.note, max: 300 },
+      ...(partnerId() ? [{ key: 'who', label: 'Кому нагадати (для «⏰ Нагадування»)', type: 'select', value: e?.who || '', options: [['', 'Обом'], [S.me.id, 'Мені'], [partnerId(), partner().name]] }] : []),
     ],
-    onSubmit: (v) => (e ? act({ type: 'update', col: 'events', id: e.id, patch: v }) : act({ type: 'add', col: 'events', item: v })),
+    onSubmit: async (v) => {
+      v.who = v.who || null;
+      const ok = await (e ? act({ type: 'update', col: 'events', id: e.id, patch: v }) : act({ type: 'add', col: 'events', item: v }));
+      if (ok && !e) toast(v.kind === 'reminder' ? 'Шептунчик нагадає вчасно 🤫' : v.time ? 'Шептунчик нагадає напередодні й за 2 години 🤫' : 'Додано в календар 📅');
+      return ok;
+    },
     onDelete: e ? () => act({ type: 'remove', col: 'events', id: e.id }) : null,
   });
 }
 on('eventForm', (el) => eventForm(null, el.dataset.d));
+
+/* ---------- Google / iPhone calendar ---------- */
+const gd = (d) => d.replace(/-/g, '');
+function gcalLink(x) {
+  const src = x.ref ? S.room[x.ref[0]]?.find((i) => i.id === x.ref[1]) : null;
+  let dates;
+  if (x.time) {
+    const [h, m] = x.time.split(':').map(Number);
+    const end = h * 60 + m + (x.kind === 'reminder' ? 15 : 120);
+    const endDate = end >= 1440 ? addDays(x.date, 1) : x.date;
+    const e = end % 1440;
+    dates = `${gd(x.date)}T${x.time.replace(':', '')}00/${gd(endDate)}T${String(Math.floor(e / 60)).padStart(2, '0')}${String(e % 60).padStart(2, '0')}00`;
+  } else dates = `${gd(x.date)}/${gd(addDays(x.date, 1))}`;
+  const title = x.kind === 'blind' ? '🎭 Побачення наосліп' : `${KIND[x.kind].emoji} ${x.title}`;
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: title, dates, ctz: 'Europe/Kyiv', details: (x.kind !== 'blind' && src?.note) || 'З «Хамелеончиків» 💚' });
+  if (src?.address) q.set('location', src.address);
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+on('calSync', async () => {
+  if (!S.room.calKey && !(await act({ type: 'calKey' }, { render: false }))) return;
+  const path = `${location.host}/api/ics?c=${S.room.code}&k=${S.room.calKey}`;
+  const https = 'https://' + path, webcal = 'webcal://' + path;
+  openSheet(`<div class="sheet-h"><h3>Календар на телефоні</h3></div>
+    <p class="muted small" style="margin-top:-4px">Підпишіться один раз — і всі побачення, події, поїздки й нагадування з'являтимуться у звичному календарі самі, з нагадуванням за 2 години.</p>
+    <a class="btn block mt" href="${esc(webcal)}">${icon('cal', 18)} Календар iPhone / Mac</a>
+    <a class="btn secondary block mt-s" href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}" target="_blank" rel="noopener"><b class="g-mark">G</b> Google Календар</a>
+    <button class="btn ghost block mt-s" data-copy>${icon('link', 18)} Скопіювати посилання</button>
+    <div class="prose small muted mt">
+      <p><b>Google на телефоні:</b> застосунок Google Календар не вміє додавати підписки. Відкрий кнопку вище в браузері (або на компʼютері) й натисни «Додати». Інший спосіб: calendar.google.com → «Інші календарі» → «+» → «З URL» → встав скопійоване посилання.</p>
+      <p>Google оновлює такі календарі не миттєво (зазвичай кілька годин). Щоб подія зʼявилась одразу — натисни <b>G</b> біля неї в календарі застосунку. Календар iPhone оновлюється частіше.</p>
+      <p>${icon('lock', 14)} Посилання секретне — не публікуй його. Якщо ним хтось заволодів, створи нове.</p></div>
+    <button class="btn ghost block" data-reset>Створити нове посилання</button>`, (sh) => {
+    sh.querySelector('[data-copy]').onclick = async () => { try { await navigator.clipboard.writeText(https); toast('Посилання скопійовано'); } catch { prompt('Скопіюй посилання:', https); } };
+    sh.querySelector('[data-reset]').onclick = async () => { if (confirm('Старе посилання перестане працювати. Створити нове?') && (await act({ type: 'calKey', reset: true }, { render: false }))) { closeSheet(); toast('Нове посилання готове — підпишись ще раз'); } };
+  });
+});
 on('calItem', (el) => {
   const [col, id] = (el.dataset.ref || '').split(':');
   const it = col && S.room[col]?.find((x) => x.id === id);
@@ -430,6 +474,10 @@ function settingsView() {
   </section>
   <div class="sec-label">СПОВІЩЕННЯ</div>
   <section class="card" id="push-box">${pushBox()}</section>
+  <div class="sec-label">КАЛЕНДАР</div>
+  <section class="card list flush">
+    <button class="li big" data-a="calSync"><span class="ic-box">${icon('cal')}</span><span class="grow"><b>Google / iPhone Календар</b><br><span class="muted small">Усі ваші плани — у звичному календарі з нагадуваннями</span></span>${icon('chev', 18)}</button>
+  </section>
   <div class="sec-label">ВХІД З БУДЬ-ЯКОГО ПРИСТРОЮ</div>
   <section class="card list flush">
     <button class="li big" data-a="loginSetup"><span class="ic-box">${icon('lock')}</span><span class="grow"><b>${m.login ? 'Логін: ' + esc(m.login) : 'Створити логін і пароль'}</b><br><span class="muted small">${m.login ? 'Змінити логін чи пароль' : 'Щоб заходити з іншого телефона чи з іконки на головному екрані'}</span></span>${icon('chev', 18)}</button>

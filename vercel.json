@@ -32,6 +32,12 @@
     },
     "api/wish.js": {
       "maxDuration": 60
+    },
+    "api/whisper.js": {
+      "maxDuration": 60
+    },
+    "api/tick.js": {
+      "maxDuration": 60
     }
   },
   "crons": [

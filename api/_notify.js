@@ -17,6 +17,8 @@ export const kv = {
   async get(key) { if (useMemory) return memory.has(key) ? structuredClone(memory.get(key)) : null; const raw = await redis(['GET', key]); return raw ? JSON.parse(raw) : null; },
   async set(key, val) { if (useMemory) return void memory.set(key, structuredClone(val)); await redis(['SET', key, JSON.stringify(val)]); },
   async setNX(key, val) { if (useMemory) { if (memory.has(key)) return false; memory.set(key, structuredClone(val)); return true; } return (await redis(['SET', key, JSON.stringify(val), 'NX'])) === 'OK'; },
+  async claim(key, ttl) { if (useMemory) { if (memory.has(key)) return false; memory.set(key, 1); return true; } return (await redis(['SET', key, '1', 'NX', 'EX', ttl])) === 'OK'; },
+  async incr(key, ttl) { if (useMemory) { const n = (memory.get(key) || 0) + 1; memory.set(key, n); return n; } const n = await redis(['INCR', key]); if (n === 1) await redis(['EXPIRE', key, ttl]); return n; },
   async sadd(key, v) { if (useMemory) { const s = new Set(memory.get(key) || []); s.add(v); memory.set(key, [...s]); return; } await redis(['SADD', key, v]); },
   async srem(key, v) { if (useMemory) { memory.set(key, (memory.get(key) || []).filter((x) => x !== v)); return; } await redis(['SREM', key, v]); },
   async smembers(key) { if (useMemory) return memory.get(key) || []; return (await redis(['SMEMBERS', key])) || []; },
@@ -123,6 +125,12 @@ export function messagesFor(action, before, after, mid) {
         const it = after.chores.find((x) => x.id === a.id);
         const was = before.chores.find((x) => x.id === a.id);
         if (it && was?.who !== pid) return out(`🧹 ${me} доручає тобі: «${it.text}»`, { tag: 'chore' });
+      }
+      if (a.col === 'shopping' && a.patch?.done) {
+        const it = after.shopping.find((x) => x.id === a.id);
+        const openNow = after.shopping.filter((x) => x.cat === it?.cat && !x.done).length;
+        const openWas = before.shopping.filter((x) => x.cat === it?.cat && !x.done).length;
+        if (it && openWas > 0 && openNow === 0) return out(`✅ ${me} купує все зі списку ${it.cat === 'other' ? 'покупок' : 'продуктів'}. Можна не йти в магазин!`, { title: 'Все куплено', tag: 'shop-' + it.cat });
       }
       if (a.col === 'blind' && a.patch?.revealed) return out(`🎭 ${me} розкриває план побачення наосліп — подивись!`, { tag: 'blind' });
       return [];

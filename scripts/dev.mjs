@@ -6,10 +6,13 @@ import * as stateApi from '../api/state.js';
 import * as recipeApi from '../api/recipe.js';
 import * as placesApi from '../api/places.js';
 import * as wishApi from '../api/wish.js';
+import * as icsApi from '../api/ics.js';
+import * as whisperApi from '../api/whisper.js';
+import * as tickApi from '../api/tick.js';
 import * as authApi from '../api/auth.js';
 import * as pushApi from '../api/push.js';
 import * as cronApi from '../api/cron.js';
-const apis = { '/api/state': stateApi, '/api/recipe': recipeApi, '/api/places': placesApi, '/api/auth': authApi, '/api/wish': wishApi, '/api/push': pushApi, '/api/cron': cronApi };
+const apis = { '/api/state': stateApi, '/api/recipe': recipeApi, '/api/places': placesApi, '/api/auth': authApi, '/api/wish': wishApi, '/api/ics': icsApi, '/api/whisper': whisperApi, '/api/tick': tickApi, '/api/push': pushApi, '/api/cron': cronApi };
 
 const root = new URL('..', import.meta.url).pathname;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
