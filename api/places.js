@@ -87,7 +87,7 @@ nwr["tourism"~"^(museum|gallery|viewpoint|attraction|zoo|aquarium|theme_park)$"]
 );out center tags 250;`;
   // Ask all mirrors at once, take the first good answer, never wait longer than 16 s.
   const ask = async (url) => {
-    const r = await fetch(url, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }, body: 'data=' + encodeURIComponent(q), signal: T(16000) });
+    const r = await fetch(`${url}?data=${encodeURIComponent(q)}`, { headers: { 'User-Agent': UA, Referer: 'https://hameleonchyky.vercel.app/' }, signal: T(16000) });
     if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
     const d = await r.json();
     if (!Array.isArray(d.elements)) throw new Error('bad overpass answer');
@@ -218,6 +218,7 @@ export async function GET(request) {
   const time = async (name, fn) => { const t = Date.now(); try { const v = await fn(); out[name] = { ok: true, ms: Date.now() - t, info: v }; } catch (e) { out[name] = { ok: false, ms: Date.now() - t, error: e.message }; } };
   await time('nominatim', async () => (await geocodeCity('Львів'))?.label);
   await time('overpass', async () => (await overpass(49.8419, 24.0315, 1500)).length + ' places');
+  await time('overpass_raw', async () => { const r = await fetch('https://overpass-api.de/api/status', { headers: { 'User-Agent': UA }, signal: T(6000) }); return r.status + ' ' + (await r.text()).slice(0, 160); });
   await time('gemini_key', async () => (GEMINI_KEY ? 'set' : 'missing'));
   return json(out);
 }
