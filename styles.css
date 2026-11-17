@@ -676,3 +676,7 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .pick { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 1px solid var(--line2); text-align: left; }
 .pick:active { transform: scale(.98); }
 .welcome .info-bar { margin-bottom: 12px; }
+.pick.on { border-color: var(--accent); }
+.pick-pass { display: flex; gap: 8px; margin: -2px 0 4px; animation: fadeUp .25s both; }
+.pick-pass .input { flex: 1; }
+.warn-b { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }

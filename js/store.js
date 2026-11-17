@@ -38,8 +38,8 @@ export function toast(msg) {
 }
 
 /* ---------------- api ---------------- */
-async function call(method, body, query = '') {
-  const res = await fetch('/api/state' + query, {
+async function call(method, body, query = '', path = '/api/state') {
+  const res = await fetch(path + query, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -79,6 +79,27 @@ export async function signInAs(code, member) {
   LS.set('me', S.me);
   const r = await call('GET', null, `?code=${encodeURIComponent(code)}&member=${encodeURIComponent(member.id)}&today=${today()}`);
   setRoom(r);
+}
+
+function adopt(r) {
+  S.me = { id: r.member.id, name: r.member.name };
+  LS.set('me', S.me);
+  setRoom(r.room);
+}
+export async function login(loginName, password) {
+  adopt(await call('POST', { op: 'login', login: loginName, password, today: today() }, '', '/api/auth'));
+}
+export async function claim(code, slot, password) {
+  adopt(await call('POST', { op: 'claim', code, slot, password, today: today() }, '', '/api/auth'));
+}
+export async function checkLogin(loginName) {
+  const r = await call('POST', { op: 'check', login: loginName }, '', '/api/auth');
+  if (!r.ok) throw new Error(r.error);
+}
+export async function register(loginName, password) {
+  const r = await call('POST', { op: 'register', code: S.code, member: S.me.id, login: loginName, password, today: today() }, '', '/api/auth');
+  setRoom(r.room);
+  return r.login;
 }
 
 export async function act(action, { silent = false, render = true } = {}) {

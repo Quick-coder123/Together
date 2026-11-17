@@ -421,10 +421,9 @@ function settingsView() {
     <button class="li big" data-a="addStart"><span class="ic-box">${icon('calheart')}</span><span class="grow"><b>Дата початку стосунків</b><br><span class="muted small">${S.room.startDate ? fmtDate(S.room.startDate, { year: true }) : 'Не вказано'}</span></span>${icon('chev', 18)}</button>
     <button class="li big" data-a="petName"><span class="ic-box">🦎</span><span class="grow"><b>Імʼя хамелеона</b><br><span class="muted small">${esc(S.room.pet.name)} · рівень ${levelInfo(S.room.pet.xp).level}</span></span>${icon('chev', 18)}</button>
   </section>
-  <div class="sec-label">ІНШІ ПРИСТРОЇ</div>
-  <section class="card small">
-    <p style="margin:0 0 8px">📱 Щоб відкрити ваші дані з іконки на головному екрані, з іншого браузера чи нового телефона: натисни там «У нас уже є пара», введи код <b class="accent">${esc(S.room.code)}</b> і обери себе.</p>
-    <p class="muted" style="margin:0">На iPhone застосунок з головного екрана й Safari зберігають вхід окремо — це нормально, вхід за кодом займає 5 секунд.</p>
+  <div class="sec-label">ВХІД З БУДЬ-ЯКОГО ПРИСТРОЮ</div>
+  <section class="card list flush">
+    <button class="li big" data-a="loginSetup"><span class="ic-box">${icon('lock')}</span><span class="grow"><b>${m.login ? 'Логін: ' + esc(m.login) : 'Створити логін і пароль'}</b><br><span class="muted small">${m.login ? 'Змінити логін чи пароль' : 'Щоб заходити з іншого телефона чи з іконки на головному екрані'}</span></span>${icon('chev', 18)}</button>
   </section>
   <div class="sec-label">ОФОРМЛЕННЯ</div>
   <div class="seg big three">${[['dark', '🌙 Темна'], ['light', '☀️ Світла'], ['auto', '⚙️ Авто']].map(([k, l]) => `<button class="seg-b ${theme === k ? 'on' : ''}" data-a="theme" data-v="${k}">${l}</button>`).join('')}</div>

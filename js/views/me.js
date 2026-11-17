@@ -16,6 +16,7 @@ export function meView() {
 
   return `
   ${coupleCard(r, pid, p, st)}
+  ${meM()?.login ? '' : `<button class="card banner warn-b" data-a="loginSetup"><span class="banner-ic">🔐</span><span class="grow"><b>Створи логін і пароль</b><br><span class="muted small">Щоб заходити з будь-якого пристрою й захистити профіль</span></span>${icon('chev', 20)}</button>`}
   ${unreadNotesBanner(r)}
   ${stepsCard(r, pid)}
   ${petCard(r, t)}

@@ -73,7 +73,8 @@ export async function GET(request) {
   const state = await load(code);
   if (!state) return json({ error: 'Пару не знайдено' }, 404);
   // Sign-in on another device / home-screen app: show who is in the pair, so the person can pick themselves.
-  if (q.get('peek')) return json({ code, members: Object.entries(state.members).map(([id, m]) => ({ id, name: m.name, avatar: m.avatar || null })) });
+  // Profiles protected by a login don't reveal their id: they are opened only with the password.
+  if (q.get('peek')) return json({ code, members: Object.entries(state.members).map(([id, m], slot) => ({ slot, id: m.login ? null : id, name: m.name, avatar: m.avatar || null, login: !!m.login })) });
   if (!state.members[mid]) return json({ error: 'not_member' }, 403);
   if (q.get('rev') && Number(q.get('rev')) === state.rev && !q.get('force')) return json({ unchanged: true, rev: state.rev });
   return json(viewFor(state, mid, today));
