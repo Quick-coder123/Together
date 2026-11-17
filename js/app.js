@@ -14,8 +14,8 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyThe
 function welcomeView() {
   const mode = S.ui.welcome || 'start';
   return `<div class="welcome">
-    <div class="welcome-art">${otter({ face: 'love', pose: 'wave', water: true, size: 170, bob: true })}</div>
-    <h1 class="logo big">Otters<span class="logo-i">h<i>${icon('heart', 12)}</i>i</span>p</h1>
+    <div class="welcome-art">${otter({ face: 'love', pose: 'wave', water: true, size: 170, bob: true, color: 'green' })}</div>
+    <h1 class="logo big">Хамелеончики<i class="logo-h">${icon('heart', 22)}</i></h1>
     <p class="lead">Твій затишний куточок для двох</p>
     <label class="field"><span>Як тебе звати?</span><input class="input" id="w-name" maxlength="30" autocomplete="given-name" value="${esc(S.me.name)}" placeholder="Наприклад, Юлія"></label>
     ${mode === 'join' ? `
@@ -25,7 +25,7 @@ function welcomeView() {
     : `
       <button class="btn block" data-a="wCreate">Створити нашу пару</button>
       <button class="btn secondary block" data-a="wMode" data-v="join">У мене є код від пари</button>`}
-    <p class="muted small center mt">Місця й побачення, спільні покупки, вішліст, подорожі, скарбнички та улюбленець-видра — на двох.</p>
+    <p class="muted small center mt">Місця й побачення, спільні покупки, вішліст, подорожі, скарбнички та хамелеон, що змінює колір під ваш настрій — на двох.</p>
   </div>`;
 }
 on('wMode', (el) => { S.me.name = nameVal(); S.ui.welcome = el.dataset.v; render(); });
@@ -59,7 +59,7 @@ const TABS = [
 function header() {
   const pid = partnerId();
   return `<header class="topbar">
-    <h1 class="logo">Otters<span class="logo-i">h<i>${icon('heart', 9)}</i>i</span>p</h1>
+    <h1 class="logo">Хамелеончики<i class="logo-h">${icon('heart', 14)}</i></h1>
     <button class="ava-stack" data-a="settings" aria-label="Профіль">${avatar(meM(), S.me.id, 44)}${pid ? avatar(partner(), pid, 44) : ''}</button>
     <button class="icon-btn" data-a="settings" aria-label="Налаштування">${icon('gear', 22)}</button>
   </header>`;

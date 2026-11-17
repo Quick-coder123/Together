@@ -73,7 +73,9 @@ function petCard(r, t) {
   const streak = streakOf(pet, t);
   const fed = pet.lastFed === t;
   const myMood = r.moods[S.me.id];
-  const face = !fed ? 'sad' : myMood?.date === t && myMood.value === 'great' ? 'love' : 'happy';
+  const todayMood = myMood?.date === t ? myMood.value : null;
+  const face = !fed ? 'sad' : todayMood === 'great' ? 'love' : todayMood === 'sad' ? 'ok' : 'happy';
+  const color = !fed ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
   const outfit = OUTFITS.find((o) => o.id === pet.outfit)?.emoji || '';
   const tasks = tasksFor(t);
   const claimed = r.daily?.[t]?.[S.me.id]?.claimed || {};
@@ -89,10 +91,10 @@ function petCard(r, t) {
     </div>
     <div class="muted small">${esc(pet.name)} · ${lv.stage} · рівень ${lv.level}</div>
     <div class="pet-scene" id="stage" data-a="play">
-      ${fed ? `<span class="chip ok">${icon('check', 14)} Нагодований</span>` : `<button class="chip warn" data-a="feed">🐟 Нагодувати</button>`}
+      ${fed ? `<span class="chip ok">${icon('check', 14)} Нагодований</span>` : `<button class="chip warn" data-a="feed">🦗 Нагодувати</button>`}
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
-      <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🐚<span class="wd-n">${found}</span></button>
-      <div class="pet-otter">${otter({ face, outfit, size: 150, bob: true })}</div>
+      <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🍃<span class="wd-n">${found}</span></button>
+      <div class="pet-otter">${otter({ face, outfit, color, size: 150, bob: true })}</div>
       <span class="tap-pill">🎮 ГРАТИ</span>
     </div>
     <div class="pet-foot">
@@ -109,7 +111,7 @@ function moodCard(r, pid, t) {
     <h3 class="h3">Як ти сьогодні?</h3>
     <div class="moods">${Object.entries(MOODS).map(([k, label]) => `
       <button class="mood m-${k} ${mine?.date === t && mine.value === k ? 'on' : ''}" data-a="mood" data-v="${k}">
-        <span class="mood-face">${otter({ face: MOOD_FACE[k], size: 34 })}</span>${label}</button>`).join('')}</div>
+        <span class="mood-face">${otter({ face: MOOD_FACE[k], size: 38 })}</span>${label}</button>`).join('')}</div>
     ${pid ? `<div class="center muted small mt">Партнер зараз: ${theirs?.date === t ? `<span class="inline-face">${otter({ face: MOOD_FACE[theirs.value], size: 26 })}</span> ${MOODS[theirs.value]}` : 'ще не відмітив(-ла)'}</div>` : ''}
   </section>`;
 }
@@ -176,7 +178,7 @@ on('step', (el) => {
 on('mood', (el) => act({ type: 'mood', value: el.dataset.v }));
 on('feed', async (el, e) => {
   e.stopPropagation();
-  if (await act({ type: 'feed' })) { floaty('🐟'); setTimeout(() => floaty('💕'), 300); toast('Ням! +10 досвіду'); }
+  if (await act({ type: 'feed' })) { floaty('🦗'); setTimeout(() => floaty('💕'), 300); toast('Ням! +10 досвіду'); }
 });
 
 /* ----- games ----- */
@@ -199,13 +201,13 @@ function gameSheet(game) {
       const f = win && ok && lf?.id ? FINDS.find((x) => x.id === lf.id) : null;
       const count = f ? S.room.pet.collection[f.id] : 0;
       box.innerHTML = f ? `<div class="g-reward r-${f.r}">
-          <div class="muted small">Видра пірнула й знайшла…</div>
+          <div class="muted small">Хамелеон вистрілив язиком і впіймав…</div>
           <div class="g-find">${f.e}</div><h3 class="h3">${f.name}</h3>
           <div class="rar r-${f.r}">${RARITY[f.r]}${count === 1 ? ' · новинка в колекції!' : ` · уже ×${count}`}</div>
           <div class="small muted mt">${lf.xp ? `+${lf.xp} досвіду улюбленцю` : 'Досвід за ігри на сьогодні вже зібрано, але знахідки є завжди 😉'}</div></div>
-          <div class="grid2 mt"><button class="btn" data-again>🎮 Ще гра</button><button class="btn secondary" data-coll>🐚 Колекція</button></div>`
+          <div class="grid2 mt"><button class="btn" data-again>🎮 Ще гра</button><button class="btn secondary" data-coll>🍃 Колекція</button></div>`
         : `<div class="g-reward"><div class="g-find">${otter({ face: 'sad', size: 110 })}</div><h3 class="h3">${win ? 'Перемога!' : 'Майже вийшло!'}</h3>
-          <p class="muted">${win ? 'Не вдалося звʼязатися із сервером — знахідку не збережено.' : 'Видра вірить у тебе. Спробуєш ще?'}</p></div>
+          <p class="muted">${win ? 'Не вдалося звʼязатися із сервером — знахідку не збережено.' : 'Хамелеон вірить у тебе. Спробуєш ще?'}</p></div>
           <div class="grid2 mt"><button class="btn" data-retry>Ще раз</button><button class="btn secondary" data-again>${icon('dice', 16)} Інша гра</button></div>`;
       box.querySelector('[data-again]')?.addEventListener('click', () => gameSheet());
       box.querySelector('[data-retry]')?.addEventListener('click', () => gameSheet(g));
@@ -232,8 +234,8 @@ function collectionSheet() {
   const n = FINDS.filter((f) => col[f.id]).length;
   const lf = S.room.pet.lastFind;
   const last = lf?.id ? FINDS.find((f) => f.id === lf.id) : null;
-  openSheet(`<div class="sheet-h"><h3>Колекція видри</h3><span class="chip">${n} / ${FINDS.length}</span></div>
-    <p class="muted small">Перемагайте в іграх — видра пірнає й приносить знахідки. Колекція спільна на двох.${last ? ` Остання: ${last.e} ${last.name} (${esc(nameOf(lf.by))}).` : ''}</p>
+  openSheet(`<div class="sheet-h"><h3>Колекція хамелеона</h3><span class="chip">${n} / ${FINDS.length}</span></div>
+    <p class="muted small">Перемагайте в іграх — хамелеон ловить язиком цікавинки. Колекція спільна на двох.${last ? ` Остання: ${last.e} ${last.name} (${esc(nameOf(lf.by))}).` : ''}</p>
     <div class="coll">${FINDS.map((f) => col[f.id]
       ? `<div class="coll-i r-${f.r}"><span class="coll-e">${f.e}</span><b>${f.name}</b><span class="rar r-${f.r}">${RARITY[f.r]}</span>${col[f.id] > 1 ? `<span class="coll-n">×${col[f.id]}</span>` : ''}</div>`
       : `<div class="coll-i empty-i"><span class="coll-e">❔</span><b>???</b><span class="rar r-${f.r}">${RARITY[f.r]}</span></div>`).join('')}</div>
@@ -263,9 +265,10 @@ on('petName', () => openForm({
 
 on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за улюбленцем</h3>
   <div class="prose">
-  <p>🐟 <b>Годуйте щодня.</b> Один з вас годує улюбленця раз на день — так росте вогник 🔥 (дні поспіль).</p>
-  <p>🎮 <b>Грайте.</b> Торкніться видри — щоразу випадає інша міні-гра: лови рибку, перлина під мушлею, памʼять, бульбашки, «повтори за видрою», правда чи міф, камінь-ножиці-папір.</p>
-  <p>🐚 <b>Збирайте знахідки.</b> За кожну перемогу видра приносить щось зі дна: від мушлі до легендарної скрині. Колекція спільна на двох.</p>
+  <p>🦗 <b>Годуйте щодня.</b> Один з вас годує улюбленця раз на день — так росте вогник 🔥 (дні поспіль).</p>
+  <p>🎮 <b>Грайте.</b> Торкніться хамелеона — щоразу випадає інша міні-гра: лови мушок, сонечко під листочком, памʼять, бульбашки, «повтори за хамелеоном», правда чи міф, камінь-ножиці-папір.</p>
+  <p>🍃 <b>Збирайте знахідки.</b> За кожну перемогу хамелеон приносить щось із лісу: від листочка до легендарного шматочка веселки. Колекція спільна на двох.</p>
+  <p>🎨 <b>Колір.</b> Хамелеон змінює колір під твій настрій: зелений — відмінно, жовтий — норм, синій — сумно. Голодний — сіріє.</p>
   <p>✅ <b>Завдання дня.</b> Щодня три завдання, кожне дає +10 досвіду.</p>
   <p>👕 <b>Гардероб.</b> З новими рівнями відкривається вбрання.</p>
   <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10).</p></div>
@@ -289,7 +292,7 @@ on('wardrobe', (el, e) => {
     <div class="wardrobe-grid">${OUTFITS.map((o) => {
       const locked = lv < o.level;
       return `<button class="wd ${S.room.pet.outfit === o.id ? 'on' : ''} ${locked ? 'locked' : ''}" data-o="${o.id}" ${locked ? 'disabled' : ''}>
-        <span class="wd-e">${o.emoji || '🦦'}</span><span>${o.name}</span>${locked ? `<span class="muted small">${icon('lock', 12)} рівень ${o.level}</span>` : ''}</button>`;
+        <span class="wd-e">${o.emoji || '🦎'}</span><span>${o.name}</span>${locked ? `<span class="muted small">${icon('lock', 12)} рівень ${o.level}</span>` : ''}</button>`;
     }).join('')}</div>`, (el2) => {
     el2.querySelectorAll('[data-o]').forEach((b) => b.onclick = async () => { if (await act({ type: 'outfit', id: b.dataset.o })) closeSheet(); });
   });
@@ -391,9 +394,9 @@ on('addStart', () => openForm({
 }));
 
 export async function share() {
-  const text = `Приєднуйся до нашого куточка в Ottership 🦦❤️\nКод пари: ${S.room.code}\n${location.origin}`;
+  const text = `Приєднуйся до нашого куточка в «Хамелеончиках» 🦎❤️\nКод пари: ${S.room.code}\n${location.origin}`;
   try {
-    if (navigator.share) await navigator.share({ title: 'Ottership', text });
+    if (navigator.share) await navigator.share({ title: 'Хамелеончики', text });
     else { await navigator.clipboard.writeText(text); toast('Запрошення скопійовано'); }
   } catch {}
 }

@@ -1,4 +1,4 @@
-// Mini-games with the otter. Each game renders into a box and calls done(win).
+// Mini-games with the chameleon. Each game renders into a box and calls done(win).
 import { esc } from './ui.js';
 
 const rnd = (n) => Math.floor(Math.random() * n);
@@ -24,7 +24,7 @@ function timerBar(box, seconds, onEnd) {
 function fish(box, done) {
   const need = 6, secs = 12;
   let got = 0, over = false;
-  box.innerHTML = `<p class="g-rule">Лови рибок, поки вони не сховались! Треба <b>${need}</b>.</p>
+  box.innerHTML = `<p class="g-rule">Хамелеон зголоднів — лови мушок язиком! Треба <b>${need}</b>.</p>
     <div class="g-timer"><i></i></div><div class="g-pond" id="pond"><span class="g-score">0 / ${need}</span></div>`;
   const pond = box.querySelector('#pond');
   const score = box.querySelector('.g-score');
@@ -32,7 +32,7 @@ function fish(box, done) {
     if (over || !box.isConnected) return;
     const f = document.createElement('button');
     f.className = 'g-fish';
-    f.textContent = Math.random() < 0.15 ? '🐡' : '🐟';
+    f.textContent = Math.random() < 0.15 ? '🦟' : '🪰';
     f.style.left = 6 + rnd(78) + '%';
     f.style.top = 10 + rnd(70) + '%';
     if (Math.random() < 0.5) f.style.transform = 'scaleX(-1)';
@@ -52,8 +52,8 @@ function fish(box, done) {
 
 /* ---------- 2. where is the pearl ---------- */
 function shells(box, done) {
-  box.innerHTML = `<p class="g-rule">Запамʼятай, під якою мушлею перлина 🦪, і стеж уважно!</p>
-    <div class="g-shells">${[0, 1, 2].map((i) => `<button class="g-shell" data-i="${i}" disabled><span class="g-pearl">${i === 1 ? '🦪' : ''}</span><span class="g-cap">🐚</span></button>`).join('')}</div>`;
+  box.innerHTML = `<p class="g-rule">Запамʼятай, під яким листочком сховалося сонечко 🐞, і стеж уважно!</p>
+    <div class="g-shells">${[0, 1, 2].map((i) => `<button class="g-shell" data-i="${i}" disabled><span class="g-pearl">${i === 1 ? '🐞' : ''}</span><span class="g-cap">🍃</span></button>`).join('')}</div>`;
   const btns = [...box.querySelectorAll('.g-shell')];
   let order = [0, 1, 2]; // order[slot] = shell index
   const place = () => btns.forEach((b, i) => { b.style.transform = `translateX(${(order.indexOf(i) - i) * 100}%)`; });
@@ -66,7 +66,7 @@ function shells(box, done) {
       place(); await wait(420);
     }
     btns.forEach((b) => (b.disabled = false));
-    box.querySelector('.g-rule').textContent = 'Де перлина?';
+    box.querySelector('.g-rule').textContent = 'Де сонечко?';
     btns.forEach((b) => b.onclick = async () => {
       btns.forEach((x) => (x.disabled = true));
       btns[1].classList.add('lift'); if (b !== btns[1]) b.classList.add('lift');
@@ -77,12 +77,12 @@ function shells(box, done) {
 
 /* ---------- 3. memory ---------- */
 function memory(box, done) {
-  const pool = shuffle(['🐟', '🐚', '⭐', '🦀', '🪸', '🦪', '🌿', '🐙']).slice(0, 4);
+  const pool = shuffle(['🐞', '🦋', '🌸', '🍃', '🪲', '🌼', '🍄', '🐛']).slice(0, 4);
   const cards = shuffle([...pool, ...pool]);
   const limit = 10;
   let open = [], found = 0, moves = 0, lock = false;
   box.innerHTML = `<p class="g-rule">Знайди всі пари за <b>${limit}</b> ходів.</p><div class="g-moves">Ходи: 0 / ${limit}</div>
-    <div class="g-mem">${cards.map((c, i) => `<button class="g-card" data-i="${i}"><span class="g-back">🦦</span><span class="g-face">${c}</span></button>`).join('')}</div>`;
+    <div class="g-mem">${cards.map((c, i) => `<button class="g-card" data-i="${i}"><span class="g-back">🦎</span><span class="g-face">${c}</span></button>`).join('')}</div>`;
   const mv = box.querySelector('.g-moves');
   box.querySelectorAll('.g-card').forEach((b) => b.onclick = async () => {
     if (lock || b.classList.contains('up')) return;
@@ -104,7 +104,7 @@ function memory(box, done) {
 function bubbles(box, done) {
   const need = 8, secs = 12;
   let got = 0, over = false;
-  box.innerHTML = `<p class="g-rule">Видра пускає бульбашки — лопни <b>${need}</b>! Рожеві не чіпай 🙅</p>
+  box.innerHTML = `<p class="g-rule">Хамелеон пускає бульбашки — лопни <b>${need}</b>! Рожеві не чіпай 🙅</p>
     <div class="g-timer"><i></i></div><div class="g-pond sky" id="sky"><span class="g-score">0 / ${need}</span></div>`;
   const sky = box.querySelector('#sky');
   const score = box.querySelector('.g-score');
@@ -134,12 +134,12 @@ function bubbles(box, done) {
 
 /* ---------- 5. repeat after the otter ---------- */
 function simon(box, done) {
-  const items = ['🐟', '🐚', '⭐', '🦀'];
+  const items = ['🪰', '🐞', '🦋', '🐛'];
   const len = 4;
   const seq = Array.from({ length: len }, () => rnd(4));
   let pos = 0;
-  box.innerHTML = `<p class="g-rule">Видра покаже, що хоче. Запамʼятай і повтори порядок!</p>
-    <div class="g-show">🦦 <span id="want">…</span></div>
+  box.innerHTML = `<p class="g-rule">Хамелеон покаже, кого хоче зловити. Запамʼятай і повтори порядок!</p>
+    <div class="g-show">🦎 <span id="want">…</span></div>
     <div class="g-pad">${items.map((e, i) => `<button class="g-key" data-i="${i}" disabled>${e}</button>`).join('')}</div>`;
   const want = box.querySelector('#want');
   const keys = [...box.querySelectorAll('.g-key')];
@@ -160,18 +160,18 @@ function simon(box, done) {
 
 /* ---------- 6. truth or myth ---------- */
 const FACTS = [
-  ['Морські видри тримаються за лапки, коли сплять, щоб їх не віднесло течією.', true],
-  ['У морської видри одне з найгустіших хутр серед усіх тварин.', true],
-  ['Морська видра має шкірну «кишеньку» під передньою лапою, де носить їжу й улюблений камінь.', true],
-  ['Видри вміють розбивати черепашки камінцями.', true],
-  ['Видри впадають у зимову сплячку.', false],
-  ['Видри — близькі родичі тюленів.', false],
-  ['Видри — родичі куниць і ласок.', true],
-  ['Під водою видра може закривати вуха й ніздрі.', true],
-  ['Видри не вміють плавати на спині.', false],
-  ['Річкова видра живе і в Україні.', true],
-  ['Новонароджене дитинча морської видри одразу вміє пірнати.', false],
-  ['Видри їдять лише рослини.', false],
+  ['Хамелеон може рухати очима незалежно одне від одного.', true],
+  ['Язик деяких хамелеонів буває довшим за їхнє тіло.', true],
+  ['Хамелеони змінюють колір лише для маскування.', false],
+  ['Колір хамелеона змінюють особливі клітини з крихітними кристалами в шкірі.', true],
+  ['Майже половина всіх видів хамелеонів живе на Мадагаскарі.', true],
+  ['Хамелеони — різновид змій.', false],
+  ['Пальці хамелеона зрощені в «кліщі», щоб міцно триматися за гілки.', true],
+  ['Хамелеони мають чудовий слух.', false],
+  ['Хамелеон бачить майже все довкола себе, не повертаючи голови.', true],
+  ['Усі хамелеони живуть понад 20 років.', false],
+  ['Кістки деяких хамелеонів світяться в ультрафіолеті.', true],
+  ['Хамелеони зазвичай пʼють краплі води з листя.', true],
 ];
 function quiz(box, done) {
   const qs = shuffle(FACTS).slice(0, 3);
@@ -199,15 +199,15 @@ function rps(box, done) {
   const opts = [['✊', 'Камінь'], ['✌️', 'Ножиці'], ['✋', 'Папір']];
   let me = 0, ot = 0;
   const draw = (msg = '') => {
-    box.innerHTML = `<p class="g-rule">Камінь, ножиці, папір з видрою — до 2 перемог.</p>
-      <div class="g-rps-score">Ти <b>${me}</b> : <b>${ot}</b> 🦦</div><div class="g-show">${msg || 'Обирай!'}</div>
+    box.innerHTML = `<p class="g-rule">Камінь, ножиці, папір з хамелеоном — до 2 перемог.</p>
+      <div class="g-rps-score">Ти <b>${me}</b> : <b>${ot}</b> 🦎</div><div class="g-show">${msg || 'Обирай!'}</div>
       <div class="g-pad three">${opts.map(([e, n], i) => `<button class="g-key" data-i="${i}" aria-label="${n}">${e}</button>`).join('')}</div>`;
     box.querySelectorAll('.g-key').forEach((k) => k.onclick = async () => {
       box.querySelectorAll('.g-key').forEach((x) => (x.disabled = true));
       const a = +k.dataset.i, b = rnd(3);
       const res = a === b ? 0 : (a + 1) % 3 === b ? 1 : -1; // rock beats scissors, scissors beat paper, paper beats rock
       if (res > 0) me++; else if (res < 0) ot++;
-      const m = `${opts[a][0]} проти ${opts[b][0]} — ${res > 0 ? 'твоя перемога!' : res < 0 ? 'видра виграла 😼' : 'нічия'}`;
+      const m = `${opts[a][0]} проти ${opts[b][0]} — ${res > 0 ? 'твоя перемога!' : res < 0 ? 'хамелеон виграв 😼' : 'нічия'}`;
       draw(m);
       if (me === 2 || ot === 2) { box.querySelectorAll('.g-key').forEach((x) => (x.disabled = true)); await wait(900); done(me === 2); }
     });
@@ -216,11 +216,11 @@ function rps(box, done) {
 }
 
 export const GAMES = [
-  { id: 'fish', title: 'Лови рибку', icon: '🐟', run: fish },
-  { id: 'shells', title: 'Де перлина?', icon: '🐚', run: shells },
-  { id: 'memory', title: 'Морська памʼять', icon: '🧠', run: memory },
+  { id: 'fish', title: 'Лови мушок', icon: '🪰', run: fish },
+  { id: 'shells', title: 'Де сонечко?', icon: '🍃', run: shells },
+  { id: 'memory', title: 'Лісова памʼять', icon: '🧠', run: memory },
   { id: 'bubbles', title: 'Мильні бульбашки', icon: '🫧', run: bubbles },
-  { id: 'simon', title: 'Повтори за видрою', icon: '🦦', run: simon },
+  { id: 'simon', title: 'Повтори за хамелеоном', icon: '🦎', run: simon },
   { id: 'quiz', title: 'Правда чи міф?', icon: '🤔', run: quiz },
   { id: 'rps', title: 'Камінь, ножиці, папір', icon: '✌️', run: rps },
 ];

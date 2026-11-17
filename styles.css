@@ -476,3 +476,14 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 @keyframes spin { to { transform: rotate(360deg); } }
 .rec-img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 22px; margin: 0 0 12px; display: block; background: var(--card2); }
 img.place-em.img { object-fit: cover; padding: 0; }
+
+/* ---------- chameleon theme ---------- */
+.logo { display: flex; align-items: center; gap: 4px; font-size: 23px; white-space: nowrap; }
+.logo.big { justify-content: center; font-size: 38px; }
+.logo-h { color: var(--pink); display: inline-flex; transform: translateY(-8px) rotate(12deg); }
+.logo-h .ico { fill: currentColor; stroke: none; }
+.pet-scene { background: radial-gradient(70% 60% at 50% 55%, #A9D4A0, #6E9F72); }
+[data-theme="light"] .pet-scene { background: radial-gradient(70% 60% at 50% 55%, #CDEBC4, #93C08F); }
+.goal-scene { background: linear-gradient(#B9D5B4, #94B590); }
+.g-pond { background: radial-gradient(80% 70% at 50% 40%, #6FA772, #3E6D45); }
+.welcome-art { background: radial-gradient(circle, rgba(108, 196, 106, .35), transparent 70%); }

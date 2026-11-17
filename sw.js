@@ -1,4 +1,4 @@
-const CACHE = 'ottership-v3';
+const CACHE = 'hamelyky-v4';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/manifest.webmanifest',
   '/js/app.js', '/js/games.js', '/js/store.js', '/js/ui.js', '/js/derive.js',

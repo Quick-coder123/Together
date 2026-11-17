@@ -419,7 +419,7 @@ function settingsView() {
     <div class="li big"><span class="ic-box">${icon('link')}</span><span class="grow"><b>Код пари</b><br><span class="muted small">${pid ? `Ви разом: ${esc(m.name)} і ${esc(partner().name)}` : 'Надішли його своїй половинці'}</span></span><b class="code-sm">${esc(S.room.code)}</b></div>
     ${pid ? '' : `<button class="li big" data-a="invite"><span class="ic-box">${icon('send')}</span><span class="grow"><b>Запросити партнера</b></span>${icon('chev', 18)}</button>`}
     <button class="li big" data-a="addStart"><span class="ic-box">${icon('calheart')}</span><span class="grow"><b>Дата початку стосунків</b><br><span class="muted small">${S.room.startDate ? fmtDate(S.room.startDate, { year: true }) : 'Не вказано'}</span></span>${icon('chev', 18)}</button>
-    <button class="li big" data-a="petName"><span class="ic-box">🦦</span><span class="grow"><b>Імʼя улюбленця</b><br><span class="muted small">${esc(S.room.pet.name)} · рівень ${levelInfo(S.room.pet.xp).level}</span></span>${icon('chev', 18)}</button>
+    <button class="li big" data-a="petName"><span class="ic-box">🦎</span><span class="grow"><b>Імʼя хамелеона</b><br><span class="muted small">${esc(S.room.pet.name)} · рівень ${levelInfo(S.room.pet.xp).level}</span></span>${icon('chev', 18)}</button>
   </section>
   <div class="sec-label">ОФОРМЛЕННЯ</div>
   <div class="seg big three">${[['dark', '🌙 Темна'], ['light', '☀️ Світла'], ['auto', '⚙️ Авто']].map(([k, l]) => `<button class="seg-b ${theme === k ? 'on' : ''}" data-a="theme" data-v="${k}">${l}</button>`).join('')}</div>
@@ -432,7 +432,7 @@ function settingsView() {
     <button class="li big" data-a="logout"><span class="ic-box">${icon('door')}</span><span class="grow"><b>Вийти на цьому пристрої</b><br><span class="muted small">Повернутися можна за кодом пари</span></span></button>
     <button class="li big danger-t" data-a="leavePair"><span class="ic-box">${icon('trash')}</span><span class="grow"><b>Покинути пару</b><br><span class="muted small">Тебе буде видалено з пари</span></span></button>
   </section>
-  <p class="center muted small pad">Ottership · куточок для двох 🦦❤️</p>`;
+  <p class="center muted small pad">Хамелеончики · куточок для двох 🦎❤️</p>`;
 }
 on('settings', () => go('more', 'settings'));
 on('rename', () => openForm({ title: 'Твоє імʼя', fields: [{ key: 'name', label: 'Імʼя', value: meM().name, required: true, max: 30 }], onSubmit: (v) => { S.me.name = v.name; LS.set('me', S.me); return act({ type: 'profile', name: v.name }); } }));
@@ -463,7 +463,8 @@ const FAQ = [
   ['Як встановити застосунок на телефон?', 'iPhone: відкрий сайт у Safari → «Поділитися» → «На екран “Додому”». Android: у Chrome меню ⋮ → «Додати на головний екран» або «Встановити застосунок».'],
   ['Чи синхронізуються дані між нами?', 'Так. Усе, що додає один, за кілька секунд зʼявляється в іншого.'],
   ['Я змінив(-ла) телефон. Як повернутися?', 'Відкрий застосунок на новому телефоні, введи імʼя і той самий код пари.'],
-  ['Що буде з улюбленцем, якщо його не годувати?', 'Він сумуватиме, а вогник днів поспіль згасне. Досвід і рівень залишаться.'],
+  ['Що буде з хамелеоном, якщо його не годувати?', 'Він посіріє й засумує, а вогник днів поспіль згасне. Досвід і рівень залишаться.'],
+  ['Чому хамелеон змінює колір?', 'Як справжній хамелеон — під настрій. Відміть свій настрій на головному екрані: зелений — відмінно, жовтий — норм, синій — сумно.'],
   ['Чи бачить партнер, що я готую подарунок?', 'Ні. Позначки «Буду дарувати» і «Куплено» бачить лише той, хто дарує.'],
   ['Як працює побачення наосліп?', 'Ти плануєш дату, час, підказку й секретний план. Партнер бачить лише дату, час і підказку, а сам план — у день побачення або коли ти його розкриєш.'],
   ['Чому я не бачу відповідей партнера в чек-іні?', 'Вони відкриваються, коли відповіли обоє — щоб відповіді були щирими.'],
