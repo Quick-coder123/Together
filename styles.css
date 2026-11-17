@@ -756,3 +756,13 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .push-what li { margin: 3px 0; }
 .ok-box { background: var(--okbg); }
 .push-b { display: flex; align-items: center; gap: 12px; }
+
+/* partner mood */
+.p-mood { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 14px; border-radius: 18px; background: var(--card2, rgba(255,255,255,.05)); border: 1.5px solid transparent; }
+.p-mood .grow { min-width: 0; line-height: 1.35; }
+.p-mood-f { display: inline-flex; flex: none; }
+.p-mood.pm-great { border-color: rgba(120, 200, 120, .45); }
+.p-mood.pm-ok { border-color: rgba(230, 190, 90, .45); }
+.p-mood.pm-sad { border-color: rgba(110, 160, 230, .5); }
+.p-mood.old { opacity: .7; border-color: transparent; }
+.p-mood-hint { font-size: 22px; }

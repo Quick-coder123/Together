@@ -95,7 +95,17 @@ export function messagesFor(action, before, after, mid) {
       if (!n || n.from !== mid) return [];
       return n.openAt ? out(`💌 ${me} залишає тобі запечатану записку. Відкриється пізніше 🔒`, { tag: 'note' }) : out(`💌 ${me} пише тобі: «${n.text.slice(0, 80)}${n.text.length > 80 ? '…' : ''}»`, { tag: 'note', urgent: true });
     }
-    case 'mood': return a.value === 'sad' ? out(`💙 ${me} відмічає сумний настрій. Може, обійми або тепле слово?`, { tag: 'mood' }) : a.value === 'great' ? out(`💚 ${me} відмічає відмінний настрій сьогодні!`, { tag: 'mood' }) : [];
+    case 'mood': {
+      const prev = before.moods?.[mid], cur = after.moods?.[mid];
+      if (!cur || (prev && prev.value === cur.value && prev.date === cur.date)) return [];
+      const changed = prev && prev.date === cur.date;
+      const txt = {
+        great: [`💚 ${me} почувається чудово!`, `💚 ${me} змінює настрій: тепер чудово!`],
+        ok: [`💛 ${me} почувається нормально.`, `💛 ${me} змінює настрій: тепер «норм».`],
+        sad: [`💙 ${me} сумує. Може, обійми або тепле слово?`, `💙 ${me} змінює настрій: тепер сумно. Підтримай 🫂`],
+      }[cur.value];
+      return txt ? out(txt[changed ? 1 : 0], { title: 'Настрій партнера', tag: 'mood', urgent: cur.value === 'sad' }) : [];
+    }
     case 'add': {
       const it = after[a.col]?.[0];
       if (!it || it.by !== mid) return [];

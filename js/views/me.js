@@ -114,8 +114,20 @@ function moodCard(r, pid, t) {
     <div class="moods">${Object.entries(MOODS).map(([k, label]) => `
       <button class="mood m-${k} ${mine?.date === t && mine.value === k ? 'on' : ''}" data-a="mood" data-v="${k}">
         <span class="mood-face">${otter({ face: MOOD_FACE[k], size: 38 })}</span>${label}</button>`).join('')}</div>
-    ${pid ? `<div class="center muted small mt">Партнер зараз: ${theirs?.date === t ? `<span class="inline-face">${otter({ face: MOOD_FACE[theirs.value], size: 26 })}</span> ${MOODS[theirs.value]}` : 'ще не відмітив(-ла)'}</div>` : ''}
+    ${pid ? partnerMood(r, pid, theirs, t) : ''}
   </section>`;
+}
+
+function partnerMood(r, pid, m, t) {
+  const p = r.members[pid] || {};
+  const fresh = m && m.date === t;
+  const when = !m ? '' : fresh ? `сьогодні о ${new Date(m.ts).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}` : m.date === addDays(t, -1) ? 'вчора' : m.date ? fmtDate(m.date) : '';
+  return `<div class="p-mood ${m ? 'pm-' + m.value : ''} ${fresh ? '' : 'old'}">
+    <span class="p-mood-f">${m ? otter({ face: MOOD_FACE[m.value], size: 40 }) : otter({ face: 'ok', size: 40 })}</span>
+    <span class="grow"><span class="muted small">${esc(p.name || "Партнер")} зараз</span><br>
+      <b>${m ? MOODS[m.value] : 'ще не відмічено'}</b>${when ? `<span class="muted small"> · ${when}</span>` : ''}</span>
+    ${m && fresh && m.value === 'sad' ? '<span class="p-mood-hint">🫂</span>' : ''}
+  </div>`;
 }
 
 function upcoming(r, t) {
