@@ -1,7 +1,7 @@
 // «Ми» — the main screen.
 import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, LS } from '../store.js';
-import { esc, icon, otter, hami, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
-import { kyivHour, MEALS, mealAt, mealsOf, mealsDone, levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
+import { esc, icon, otter, hami, STAGE_SCALE, HAMI_STAGES, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
+import { stageOf, kyivHour, MEALS, mealAt, mealsOf, mealsDone, levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
 import { GAMES, pickGame } from '../games.js';
 import { petEvent } from '../petlive.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
@@ -77,9 +77,10 @@ function fxLayer(fx) {
   const list = FX[fx].split(' ');
   return `<span class="fx fx-${fx}" aria-hidden="true">${Array.from({ length: 9 }, (_, i) => `<i style="--i:${i}">${list[i % list.length]}</i>`).join('')}</span>`;
 }
-function petSvg(look, pose, color, size) {
+function petSvg(look, pose, color, size, stage = 'adult') {
   const c = look.skin && look.skin !== 'mood' ? look.skin : color;
-  return hami(pose, { size, color: c, bob: true });
+  const p = pose === 'idle' ? stage : pose;
+  return hami(p, { size, color: c, bob: true, scale: HAMI_STAGES.includes(p) ? 1 : STAGE_SCALE[stage] });
 }
 const DECO = { forest: '🌿 🍃', meadow: '🌼 🌷 🐝', beach: '☀️ 🌊 🐚', sakura: '🌸 🌸 🌸', snow: '❄️ ⛄ ❄️', sunset: '🌅 🕊️', night: '🌙 ✨ ⭐', space: '🪐 ✨ 🌠', aurora: '✨ 🌌 ✨' };
 const sceneDeco = (sc) => `<span class="deco" aria-hidden="true">${(DECO[sc] || '').split(' ').map((e, i) => `<i style="--i:${i}">${e}</i>`).join('')}</span>`;
@@ -95,7 +96,9 @@ function petCard(r, t) {
   const look = lookOf(pet);
   const h = kyivHour();
   const night = (h >= 23 || h < 7) && nMeals > 0;
-  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood ? MOOD_POSE[todayMood] : look.pose || 'cool';
+  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood ? MOOD_POSE[todayMood] : look.pose || 'idle';
+  const stage = stageOf(lv.level);
+  const pose = face === 'idle' ? stage : face;
   const color = hungry ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
   const tasks = tasksFor(t);
   const claimed = r.daily?.[t]?.[S.me.id]?.claimed || {};
@@ -116,7 +119,7 @@ function petCard(r, t) {
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
       <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🍃<span class="wd-n">${found}</span></button>
       <button class="wardrobe third" data-a="badges" aria-label="Нагороди">🏅<span class="wd-n">${Object.keys(pet.badges || {}).length}</span></button>
-      <div class="pet-otter" id="pet-live" data-base="${face}">${petSvg(look, face, color, 170)}</div>
+      <div class="pet-otter" id="pet-live" data-base="${pose}" data-stage="${stage}">${petSvg(look, pose, color, 190, stage)}</div>
       ${hungry && pet.lastFed ? '<span class="hungry-tag">Голодний — ігри без досвіду</span>' : ''}
       <span class="tap-pill">🎮 ГРАТИ</span>
     </div>
@@ -365,9 +368,9 @@ function wardrobeSheet(slot = 'pose') {
   let cur = slot;
   const body = (look) => {
     const lv = levelInfo(S.room.pet.xp).level;
-    const swatch = (it) => (it.slot === 'pose' ? hami(it.e, { size: 56 }) : it.slot === 'skin' && it.e.startsWith('#') ? `<span class="sw" style="background:${it.e}"></span>` : `<span class="wd-e">${it.e}</span>`);
+    const swatch = (it) => (it.slot === 'pose' ? hami(it.e === 'idle' ? stageOf(lv) : it.e, { size: 56 }) : it.slot === 'skin' && it.e.startsWith('#') ? `<span class="sw" style="background:${it.e}"></span>` : `<span class="wd-e">${it.e}</span>`);
     return `<div class="sheet-h"><h3>Гардероб</h3><span class="chip">рівень ${lv}</span></div>
-      <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${fxLayer(look.fx)}${petSvg(look, look.pose, 'green', 170)}</div>
+      <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${fxLayer(look.fx)}${petSvg(look, look.pose, 'green', 170, stageOf(levelInfo(S.room.pet.xp).level))}</div>
       <div class="wd-tabs">${Object.entries(SLOTS).map(([k, n]) => `<button class="pill ${k === cur ? 'on' : ''}" data-slot="${k}">${n}</button>`).join('')}</div>
       <div class="wardrobe-grid ${cur === 'pose' ? 'poses' : ''}">${ITEMS.filter((x) => x.slot === cur).map((it) => {
         const ok = unlocked(S.room, it);

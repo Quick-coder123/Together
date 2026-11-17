@@ -3,6 +3,7 @@
 import { S, today, partnerId, partner } from './store.js';
 import { mealsDone, mealAt, mealsOf, isHungry, kyivHour } from '/lib/core.js';
 import { itemsBetween } from './derive.js';
+import { hamiSrc, STAGE_SCALE, HAMI_STAGES } from './ui.js';
 
 let temp = null; // { pose, until, anim }
 let nextIdle = Date.now() + 6000;
@@ -10,6 +11,28 @@ let bubbleUntil = 0;
 let taps = [];
 let lastSnap = null;
 let lastText = '';
+let framing = 0; // frame animation playing until this time
+const FRAMES = { idle: [1, 2, 3, 4, 5, 4, 3, 2, 1], wave: [1, 2, 3, 4, 5, 4, 3, 2, 3, 4, 5, 1], jump: [1, 2, 3, 4, 1, 2, 3, 4] };
+let preloaded = false;
+function preload() { if (preloaded) return; preloaded = true; for (const [k, fr] of Object.entries(FRAMES)) for (const i of new Set(fr)) { const im = new Image(); im.src = hamiSrc(k + i); } }
+function setImg(pose) {
+  const p = el(); const img = p?.querySelector('img'); if (!img) return;
+  const src = hamiSrc(pose);
+  if (!img.src.endsWith(src)) img.src = src;
+  const k = HAMI_STAGES.includes(pose) ? 1 : STAGE_SCALE[p.dataset.stage] || 1;
+  img.style.width = k === 1 ? '' : Math.round(k * 100) + '%';
+}
+/** Real frame-by-frame animation from the sprite frames. */
+export function playFrames(name, fps = 8, text = '', after = null) {
+  const seq = FRAMES[name]; if (!seq || !el()) return;
+  const dur = (seq.length * 1000) / fps;
+  framing = Date.now() + dur;
+  temp = null;
+  seq.forEach((n, i) => setTimeout(() => { if (Date.now() <= framing + 50) setImg(name + n); }, (i * 1000) / fps));
+  setTimeout(() => { framing = 0; if (after) petDo(after, 1600, 'pop'); else apply(true); }, dur + 20);
+  if (text) say(text, Math.max(dur + 400, 2200));
+  nextIdle = Date.now() + dur + 7000 + Math.random() * 6000;
+}
 const rnd = (a) => a[Math.floor(Math.random() * a.length)];
 const el = () => document.getElementById('pet-live');
 
@@ -41,13 +64,13 @@ function burst(emojis, n = 5) {
 function apply(animate) {
   const p = el(); if (!p) return;
   const img = p.querySelector('img'); if (!img) return;
+  if (framing > Date.now()) return;
   const live = temp && temp.until > Date.now();
   const pose = live ? temp.pose : p.dataset.base;
-  const src = `/img/hami/${pose}.webp`;
-  if (!img.src.endsWith(src)) {
-    img.src = src;
+  if (!img.src.endsWith(hamiSrc(pose))) {
+    setImg(pose);
     if (animate) { p.classList.remove('swap'); void p.offsetWidth; p.classList.add('swap'); }
-  }
+  } else setImg(pose);
   p.classList.remove('a-hop', 'a-jump', 'a-shake', 'a-flip', 'a-melt');
   if (live && temp.anim && temp.anim !== 'pop') { void p.offsetWidth; p.classList.add('a-' + temp.anim); }
 }
@@ -76,15 +99,15 @@ function idle() {
   if (base === 'tired') { petDo('tired', 2000, 'melt', rnd(['Я такий голодний… 🥺', 'Сил немає… погодуй мене'])); return; }
   if (base === 'hungry' || !mealsOf(pet, t)[mealAt()]) { petDo('hungry', 2600, 'hop', rnd(['Я б з’їв мушку 🥺', 'Бурчить у животику…', 'Час їсти! 🍽️'])); return; }
   const acts = [
-    () => petDo('hello', 2400, 'hop', rnd(['Привіт! 👋', 'Агов! 😎'])),
+    () => playFrames('wave', 8, rnd(['Привіт! 👋', 'Агов! 😊'])),
     () => petDo('thinking', 3000, 'pop', rnd(phrases())),
-    () => petDo('sit', 3400, 'pop'),
+    () => petDo('normal', 3000, 'pop'),
     () => petDo(base, 1600, 'flip'),
     () => petDo('great', 2200, 'hop', rnd(['Ви молодці! 👍', 'Клас! ✨'])),
-    () => petDo('think', 3000, 'pop', rnd(phrases())),
-    () => { petDo('joy', 2000, 'jump'); burst(['✨', '🎉', '💚'], 4); },
+    () => petDo('heart', 2800, 'pop', rnd(phrases())),
+    () => { playFrames('jump', 8); burst(['✨', '🎉', '💚'], 4); },
     () => say(rnd(phrases()), 3600),
-    () => petDo('whisper', 2800, 'pop', rnd(['Пссс… обійми її 🤫', 'Пссс… скажи комплімент 🤫', 'Пссс… запроси на каву ☕'])),
+    () => petDo('wow', 2600, 'hop', rnd(['Ой! Ти тут 😳', 'Пссс… обійми її 🤫', 'Пссс… запроси на каву ☕'])),
   ];
   rnd(acts)();
 }
@@ -97,16 +120,16 @@ function tap() {
   if (taps.length >= 5) { petDo('angry', 2600, 'shake', rnd(['Ну досить 😤', 'Щекотно ж! 😤', 'Я тобі не кнопка! 😤'])); taps = []; return; }
   const base = el()?.dataset.base;
   if (base === 'sleep') { petDo('tired', 2000, 'shake', 'Ммм… дай поспати 😴'); return; }
-  rnd([() => petDo('joy', 1800, 'jump'), () => petDo('great', 1800, 'hop'), () => petDo('hello', 1800, 'hop')])();
+  rnd([() => playFrames('jump', 9), () => petDo('great', 1800, 'hop'), () => playFrames('wave', 9), () => petDo('joy', 1800, 'jump')])();
   burst(['💚', '💕', '✨'], 3);
 }
 function pet() { petDo('heart', 3000, 'melt', rnd(['Мрр… 💚', 'Ще погладь 🥰', 'Як приємно 😌'])); burst(['💕', '💖', '💗'], 7); navigator.vibrate?.([10, 40, 10]); }
 
 export function petEvent(kind) {
-  if (kind === 'feed') { setTimeout(() => burst(['🦗', '😋'], 3), 200); petDo('eat', 3200, 'hop', rnd(['Ням-ням! 😋', 'Смакота!', 'Дякую! 💚'])); setTimeout(() => el() && petDo('joy', 1800, 'jump'), 3300); }
-  if (kind === 'win') petDo('joy', 3000, 'jump', rnd(['Перемога! 🎉', 'Ми чемпіони! 🏆']));
+  if (kind === 'feed') { setTimeout(() => burst(['🦗', '😋'], 3), 200); petDo('eat', 3200, 'hop', rnd(['Ням-ням! 😋', 'Смакота!', 'Дякую! 💚'])); setTimeout(() => el() && playFrames('jump', 8), 3300); }
+  if (kind === 'win') playFrames('jump', 8, rnd(['Перемога! 🎉', 'Ми чемпіони! 🏆']), 'joy');
   if (kind === 'lose') petDo('sad', 2600, 'melt', 'Наступного разу вийде 💪');
-  if (kind === 'great') { petDo('joy', 2400, 'jump', 'Ура! 💚'); burst(['💚', '✨'], 5); }
+  if (kind === 'great') { playFrames('jump', 8, 'Ура! 💚', 'great'); burst(['💚', '✨'], 5); }
   if (kind === 'ok') petDo('normal', 2200, 'pop', 'Норм — теж добре 💛');
   if (kind === 'sad') petDo('heart', 3200, 'pop', 'Я поруч. Обійми? 💙');
 }
@@ -125,6 +148,7 @@ function partnerNews() {
 /** Called after every render of the page. */
 export function petMount() {
   const p = el(); if (!p) return;
+  preload();
   apply(false);
   if (Date.now() < bubbleUntil && lastText) say(lastText, bubbleUntil - Date.now());
   partnerNews();
@@ -149,6 +173,9 @@ setInterval(() => {
   if (!el()) return;
   if (temp && temp.until <= Date.now()) { temp = null; apply(true); }
   hideBubble();
-  if (Date.now() > nextIdle) { nextIdle = Date.now() + 9000 + Math.random() * 7000; idle(); }
+  if (Date.now() > nextIdle) { nextIdle = Date.now() + 9000 + Math.random() * 7000; idle(); return; }
+  // grown-up Хамі breathes and blinks with real frames now and then
+  const p = el();
+  if (p.dataset.base === 'adult' && !framing && !(temp && temp.until > Date.now()) && Math.random() < 0.12 && !document.hidden) playFrames('idle', 7);
 }, 500);
 void kyivHour; void isHungry;

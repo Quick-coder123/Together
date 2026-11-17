@@ -120,24 +120,28 @@ export const PALETTE = {
   rainbow: ['url(#RB)', '#7E57C2', '#FFF4CC', '#FFFFFF'],
 };
 /* Хамі — sticker sprites (img/hami/*.webp). Colour = CSS hue shift of the green original. */
-export const HAMI_POSES = ['cool', 'great', 'normal', 'sad', 'joy', 'wow', 'angry', 'tired', 'sleep', 'thinking', 'hello', 'heart', 'eat', 'hungry', 'play', 'letter', 'shopping', 'reminder', 'guide', 'chef', 'whisper', 'hide', 'think', 'sit'];
+export const HAMI_STAGES = ['baby', 'kid', 'teen', 'adult'];
+export const HAMI_POSES = [...HAMI_STAGES, 'letter', 'shopping', 'reminder', 'guide', 'chef', 'great', 'normal', 'sad', 'joy', 'wow', 'angry', 'tired', 'sleep', 'thinking', 'heart', 'eat', 'hungry', 'play'];
+// older pose names → current pictures
+const HAMI_ALIAS = { cool: 'adult', sit: 'adult', idle: 'adult', hello: 'wave3', whisper: 'normal', hide: 'thinking', think: 'thinking' };
+export const hamiSrc = (pose) => `/img/hami/${HAMI_ALIAS[pose] || (HAMI_POSES.includes(pose) || /^(idle|wave|jump)\d$/.test(pose) ? pose : 'adult')}.webp`;
+// younger stages are smaller: other poses are drawn adult-size, so scale them down
+export const STAGE_SCALE = { baby: 0.72, kid: 0.82, teen: 0.92, adult: 1 };
 // top of the cap, % of the sprite (for a hat worn on top)
-export const HAMI_TOP = { angry: [51.2, 2], chef: [32.3, 2.6], cool: [46.9, 5.2], eat: [45, 2.1], great: [47.4, 2.1], guide: [45.1, 2.5], heart: [39.9, 2.1], hello: [51.5, 2], hide: [45.5, 1.9], hungry: [48.8, 2], joy: [45, 2.8], letter: [47.5, 2], normal: [50.7, 2.1], play: [44.6, 2.2], reminder: [44, 2.4], sad: [55, 46], shopping: [42.8, 2.5], sit: [50.8, 1.9], sleep: [39.9, 34.2], think: [51.4, 1.9], thinking: [42.3, 2.1], tired: [56.7, 2.1], whisper: [49, 3.7], wow: [44.4, 2.1] };
 const HUE = {
   green: '', emerald: 'hue-rotate(25deg) saturate(1.1)', mint: 'hue-rotate(45deg)', turquoise: 'hue-rotate(75deg)', blue: 'hue-rotate(110deg)',
   night: 'hue-rotate(125deg) brightness(.8) saturate(1.2)', violet: 'hue-rotate(160deg)', pink: 'hue-rotate(215deg) saturate(.9)', coral: 'hue-rotate(250deg) saturate(1.1)',
   golden: 'hue-rotate(-45deg) saturate(1.3) brightness(1.05)', yellow: 'hue-rotate(-40deg) saturate(1.2)', grey: 'saturate(.15) brightness(1.05)', rainbow: '',
 };
 export const hamiFilter = (color) => HUE[color] || '';
-export function hami(pose = 'cool', { size = 120, color = 'green', bob = false, cls = '', hat = '', near = '' } = {}) {
-  if (!HAMI_POSES.includes(pose)) pose = 'cool';
+export function hami(pose = 'adult', { size = 120, color = 'green', bob = false, cls = '', scale = 1 } = {}) {
   const f = hamiFilter(color);
-  const [hx, hy] = HAMI_TOP[pose] || [50, 2];
-  return `<span class="otter hami ${bob ? 'bob' : ''} ${color === 'rainbow' ? 'rainbow' : ''} ${cls}" style="--s:${size}px"><img src="/img/hami/${pose}.webp" alt="" width="${size}" height="${size}" draggable="false"${f ? ` style="filter:${f}"` : ''}>${hat ? `<span class="hami-hat" style="left:${hx}%;top:${hy}%">${hat}</span>` : ''}${near ? `<span class="hami-near">${near}</span>` : ''}</span>`;
+  const st = [f ? `filter:${f}` : '', scale !== 1 ? `width:${Math.round(scale * 100)}%` : ''].filter(Boolean).join(';');
+  return `<span class="otter hami ${bob ? 'bob' : ''} ${color === 'rainbow' ? 'rainbow' : ''} ${cls}" style="--s:${size}px"><img src="${hamiSrc(pose)}" alt="" width="${size}" height="${size}" draggable="false"${st ? ` style="${st}"` : ''}></span>`;
 }
 // Backward-compatible helper: face/pose → sticker.
 export function otter({ face = 'happy', pose = '', size = 160, bob = false, color } = {}) {
-  const p = HAMI_POSES.includes(pose) ? pose : pose === 'wave' ? 'hello' : { happy: 'cool', ok: 'normal', sad: 'sad', love: 'heart', sleep: 'sleep', wow: 'wow' }[face] || 'cool';
+  const p = HAMI_POSES.includes(pose) || HAMI_ALIAS[pose] ? pose : pose === 'wave' ? 'hello' : { happy: 'great', ok: 'normal', sad: 'sad', love: 'heart', sleep: 'sleep', wow: 'wow' }[face] || 'adult';
   return hami(p, { size, bob, color: color || 'green' });
 }
 export const mascot = otter;
