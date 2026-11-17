@@ -127,6 +127,16 @@ export function messagesFor(action, before, after, mid) {
       if (a.col === 'blind' && a.patch?.revealed) return out(`🎭 ${me} розкриває план побачення наосліп — подивись!`, { tag: 'blind' });
       return [];
     }
+    case 'shopList': {
+      if (!a.fresh) return [];
+      const m = after.shopMeta?.[a.cat === 'other' ? 'other' : 'food'];
+      if (!m || m.by !== mid) return [];
+      const names = m.added || [];
+      const what = a.cat === 'other' ? 'покупок' : 'продуктів';
+      const list = names.slice(0, 5).join(', ') + (names.length > 5 ? ` і ще ${names.length - 5}` : '');
+      const carried = m.carried > 0 ? ` Ще ${m.carried} з минулого списку.` : '';
+      return out(`🛒 ${me} складає новий список ${what}${list ? ': ' + list : ''}.${carried}`, { title: 'Новий список покупок', tag: 'shop' });
+    }
     case 'goalMove': {
       const g = after.goals.find((x) => x.id === a.id);
       if (!g || !(Number(a.amount) > 0)) return [];

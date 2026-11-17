@@ -819,3 +819,8 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .img-acts { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .img-acts label.btn { cursor: pointer; }
 .mt-s { margin-top: 6px; }
+.shop-head { margin-bottom: 12px; }
+.shop-head .ic-box { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--card2); flex: none; }
+.shop-head .grow { min-width: 0; }
+.carry { background: var(--card2); border-radius: 14px; padding: 10px 12px; font-size: 14px; line-height: 1.4; }
+.carry svg { display: inline-block; vertical-align: -2px; }
