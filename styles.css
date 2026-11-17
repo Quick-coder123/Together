@@ -680,3 +680,12 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .pick-pass { display: flex; gap: 8px; margin: -2px 0 4px; animation: fadeUp .25s both; }
 .pick-pass .input { flex: 1; }
 .warn-b { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+/* «Ще» as a compact grouped list */
+.menu-card { padding: 0; }
+.li.menu { padding: 12px 14px; gap: 12px; border-bottom: 1px solid var(--line); }
+.li.menu:last-child { border-bottom: 0; }
+.li.menu b { font-size: clamp(15px, 4.2vw, 16px); font-weight: 700; }
+.li.menu .small { font-size: 13px; }
+.li.menu > .ico { color: var(--muted); }
+.menu-ic { width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; color: #fff; }
+.li.menu:active { background: var(--card2); transform: none; }

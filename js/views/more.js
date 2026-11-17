@@ -23,23 +23,29 @@ export function moreView(sub) {
 }
 
 function moreHome() {
-  const tile = (sub, ic, grad, title, text) => `<button class="tile big" data-a="go" data-tab="more" data-sub="${sub}"><span class="app-ic" style="background:${grad}">${icon(ic, 26)}</span><b>${title}</b><span>${text}</span></button>`;
   const seen = LS.get('seenNotes', 0);
   const fresh = S.room.notes.filter((n) => n.from !== S.me.id && n.ts > seen).length;
+  const row = (attrs, ic, grad, title, text, extra = '') => `<button class="li menu" ${attrs}>
+    <span class="menu-ic" style="background:${grad}">${icon(ic, 20)}</span>
+    <span class="grow"><b>${title}</b>${extra}<br><span class="muted small">${text}</span></span>${icon('chev', 18)}</button>`;
+  const sub = (k) => `data-a="go" data-tab="more" data-sub="${k}"`;
   return `<div class="page-h"><div><h1>Ще</h1><p class="muted">Решта розділів застосунку.</p></div></div>
-  <div class="sec-label">РОЗДІЛИ</div>
-  <div class="grid2">
-    ${tile('trips', 'pin', 'linear-gradient(135deg,#22C1EE,#3B6FF0)', 'Подорожі', 'Напрямки, місця й бюджет')}
-    ${tile('calendar', 'cal', 'linear-gradient(135deg,#F2545B,#F59E42)', 'Календар', 'Усі зустрічі й події')}
-    ${tile('goals', 'piggy', 'linear-gradient(135deg,#F7A531,#EE4D8A)', 'Ціль / скарбничка', 'Копіть разом на важливе')}
-    ${tile('checkin', 'hearthand', 'linear-gradient(135deg,#E14FD3,#8B5CF6)', 'Чек-ін пари', 'Як минув ваш тиждень')}
-    <button class="tile big" data-a="go" data-tab="more" data-sub="notes"><span class="app-ic" style="background:linear-gradient(135deg,#FF8A8A,#E6566E)">${icon('send', 26)}</span><b>Записки${fresh ? ` <span class="badge">${fresh}</span>` : ''}</b><span>Листи й сюрпризи одне одному</span></button>
-    <button class="tile big" data-a="blindNew"><span class="app-ic" style="background:linear-gradient(135deg,#B06AB3,#4568DC)">${icon('mask', 26)}</span><b>Побачення наосліп</b><span>Спланувати сюрприз</span></button>
-  </div>
+  <div class="sec-label">РАЗОМ</div>
+  <section class="card list flush menu-card">
+    ${row(sub('calendar'), 'cal', 'linear-gradient(135deg,#F2545B,#F59E42)', 'Календар', 'Усі зустрічі й події')}
+    ${row(sub('notes'), 'send', 'linear-gradient(135deg,#FF8A8A,#E6566E)', 'Записки', 'Листи й сюрпризи одне одному', fresh ? ` <span class="badge">${fresh}</span>` : '')}
+    ${row(sub('checkin'), 'hearthand', 'linear-gradient(135deg,#E14FD3,#8B5CF6)', 'Чек-ін пари', 'Як минув ваш тиждень')}
+    ${row('data-a="blindNew"', 'mask', 'linear-gradient(135deg,#B06AB3,#4568DC)', 'Побачення наосліп', 'Спланувати сюрприз')}
+  </section>
+  <div class="sec-label">ПЛАНИ</div>
+  <section class="card list flush menu-card">
+    ${row(sub('trips'), 'pin', 'linear-gradient(135deg,#22C1EE,#3B6FF0)', 'Подорожі', 'Напрямки, місця й бюджет')}
+    ${row(sub('goals'), 'piggy', 'linear-gradient(135deg,#F7A531,#EE4D8A)', 'Цілі й скарбнички', 'Копіть разом на важливе')}
+  </section>
   <div class="sec-label">НАЛАШТУВАННЯ І ПІДТРИМКА</div>
-  <section class="card list flush">
-    <button class="li big" data-a="go" data-tab="more" data-sub="settings"><span class="ic-box">${icon('gear')}</span><span class="grow"><b>Налаштування</b><br><span class="muted small">Профіль, оформлення та приватність</span></span>${icon('chev', 18)}</button>
-    <button class="li big" data-a="go" data-tab="more" data-sub="faq"><span class="ic-box">${icon('help')}</span><span class="grow"><b>Часті питання</b><br><span class="muted small">Відповіді на те, що питають найчастіше</span></span>${icon('chev', 18)}</button>
+  <section class="card list flush menu-card">
+    ${row(sub('settings'), 'gear', 'linear-gradient(135deg,#8E8E93,#5E5E66)', 'Налаштування', 'Профіль, вхід, оформлення')}
+    ${row(sub('faq'), 'help', 'linear-gradient(135deg,#5FB98A,#2F8F6A)', 'Часті питання', 'Відповіді на популярні питання')}
   </section>`;
 }
 on('blindNew', () => blindForm());

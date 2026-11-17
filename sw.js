@@ -1,4 +1,4 @@
-const CACHE = 'hamelyky-v7';
+const CACHE = 'hamelyky-v8';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/manifest.webmanifest',
   '/js/app.js', '/js/games.js', '/js/store.js', '/js/ui.js', '/js/derive.js',
