@@ -1029,3 +1029,15 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .pet-scene .pet-otter .hami img { transition: width .2s; }
 .pet-scene .tap-pill { left: auto; right: 12px; bottom: 12px; transform: none; padding: 7px 12px; }
 .pet-scene .pet-otter { margin-top: 26px; }
+
+/* pseudo-3D */
+.pet-scene { perspective: 700px; }
+.pet-scene::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: -30%; height: 62%; background: radial-gradient(60% 55% at 50% 30%, rgba(255,255,255,.16), rgba(0,0,0,.14) 70%, transparent 72%); transform: rotateX(62deg); transform-origin: 50% 100%; pointer-events: none; z-index: 0; }
+.pet-scene .pet-otter { position: relative; transform-style: preserve-3d; }
+.pet-tilt { display: inline-block; transition: transform .35s ease-out; transform-style: preserve-3d; animation: sway3d 7s ease-in-out infinite; }
+@keyframes sway3d { 0%, 100% { rotate: y -7deg; } 50% { rotate: y 7deg; } }
+.pet-tilt .hami img { filter: drop-shadow(0 10px 8px rgba(0,0,0,.18)); }
+.pet-shadow { position: absolute; left: 50%; bottom: 2px; width: 46%; height: 14px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.35), rgba(0,0,0,0)); pointer-events: none; }
+#pet-live[data-stage=baby] .pet-shadow { width: 34%; } #pet-live[data-stage=kid] .pet-shadow { width: 38%; } #pet-live[data-stage=teen] .pet-shadow { width: 42%; }
+#pet-live.a-jump .pet-shadow, #pet-live.a-hop .pet-shadow { animation: shadowJump .55s ease-in-out 3; }
+@keyframes shadowJump { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; } 60% { transform: translateX(-50%) scale(.6); opacity: .5; } }

@@ -96,7 +96,7 @@ function petCard(r, t) {
   const look = lookOf(pet);
   const h = kyivHour();
   const night = (h >= 23 || h < 7) && nMeals > 0;
-  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood ? MOOD_POSE[todayMood] : look.pose || 'idle';
+  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood === 'sad' ? 'sad' : look.pose || 'idle'; // great/ok moods: he just lives happily (colour + behaviour)
   const stage = stageOf(lv.level);
   const pose = face === 'idle' ? stage : face;
   const color = hungry ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
@@ -119,7 +119,7 @@ function petCard(r, t) {
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
       <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🍃<span class="wd-n">${found}</span></button>
       <button class="wardrobe third" data-a="badges" aria-label="Нагороди">🏅<span class="wd-n">${Object.keys(pet.badges || {}).length}</span></button>
-      <div class="pet-otter" id="pet-live" data-base="${pose}" data-stage="${stage}">${petSvg(look, pose, color, 190, stage)}</div>
+      <div class="pet-otter" id="pet-live" data-base="${pose}" data-stage="${stage}" data-mood="${todayMood || ''}"><span class="pet-shadow"></span><span class="pet-tilt">${petSvg(look, pose, color, 190, stage)}</span></div>
       ${hungry && pet.lastFed ? '<span class="hungry-tag">Голодний — ігри без досвіду</span>' : ''}
       <span class="tap-pill">🎮 ГРАТИ</span>
     </div>

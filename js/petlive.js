@@ -25,7 +25,7 @@ function framesFor(kind, stage) {
 }
 
 /* ---------- state kept across page re-renders ---------- */
-const st = { x: 0, face: 1, act: null, temp: null, bubbleUntil: 0, text: '', nextAct: now() + 2500, taps: [], snap: null, walking: false };
+const st = { x: 0, z: 0, face: 1, act: null, temp: null, bubbleUntil: 0, text: '', nextAct: now() + 2500, taps: [], snap: null, walking: false };
 
 /* ---------- drawing ---------- */
 function setImg(name, own) {
@@ -38,7 +38,10 @@ function setImg(name, own) {
 function place(animate = true) {
   const p = el(); if (!p) return;
   p.style.transition = animate ? '' : 'none';
-  p.style.transform = `translateX(${st.x}px) scaleX(${st.face})`;
+  // pseudo-3D depth: further back = higher and smaller
+  const k = 1 - st.z * 0.2;
+  p.style.transform = `translateX(${st.x}px) translateY(${-st.z * 34}px) scale(${k * st.face}, ${k})`;
+  p.style.zIndex = String(2 + Math.round((1 - st.z) * 2));
   const say = p.parentElement?.querySelector('.pet-say');
   if (say) say.style.marginLeft = `${st.x}px`;
 }
@@ -85,10 +88,11 @@ export function petDo(pose, ms = 2400, anim = 'a-hop', text = '') {
 }
 export const playFrames = (kind, fps = 8, text = '', after = null) => play(kind, { fps, text, then: after ? () => petDo(after, 1600, 'a-hop') : null });
 
-function walkTo(x) {
+function walkTo(x, z = Math.random() < 0.6 ? Math.random() : st.z) {
   const p = el(); if (!p) return;
-  const dist = Math.abs(x - st.x); if (dist < 12) return;
-  st.face = x > st.x ? 1 : -1;
+  const dist = Math.hypot(x - st.x, (z - st.z) * 80); if (dist < 12) return;
+  if (Math.abs(x - st.x) > 6) st.face = x > st.x ? 1 : -1;
+  st.z = Math.max(0, Math.min(1, z));
   const ms = Math.max(700, dist * 14);
   p.style.transitionDuration = ms + 'ms';
   st.x = x; place(true);
@@ -132,12 +136,13 @@ function decide() {
     st.nextAct = now() + 4500 + Math.random() * 3500; return;
   }
   const isIdle = HAMI_STAGES.includes(base);
+  const mood = p.dataset.mood; const joy = mood === 'great' ? 2 : 1;
   const options = [
     [28, () => walkTo(spot())],
     [18, () => play('idle', { fps: 6, loop: true, until: now() + 2500 + Math.random() * 2500 })],
     [10, () => { st.face = -st.face; place(true); setTimeout(() => { st.face = -st.face; place(true); }, 900 + Math.random() * 700); }],
-    [10, () => play('wave', { fps: 8, text: Math.random() < 0.6 ? rnd(['Привіт! 👋', 'Агов! 😊', 'Я тут!']) : '' })],
-    [7, () => { play('jump', { fps: 8 }); burst(['✨', '💚'], 3); }],
+    [10 * joy, () => play('wave', { fps: 8, text: Math.random() < 0.6 ? rnd(['Привіт! 👋', 'Агов! 😊', 'Я тут!']) : '' })],
+    [7 * joy * joy, () => { play('jump', { fps: 8 }); burst(['✨', '💚'], 3); if (mood === 'great' && Math.random() < 0.5) say(rnd(['Який класний день! 💚', 'Я сьогодні щасливий ✨', 'Ура-ура! 🎉'])); }],
     [10, () => play('tongue', { fps: 7, text: Math.random() < 0.4 ? rnd(['Ням, мушка! 🪰', 'Влучив! 😋']) : '' })],
     [9, () => { play('idle', { fps: 6, loop: true, until: now() + 3200 }); say(rnd(phrases()), 3600); }],
     [5, () => petDo(rnd(['great', 'heart', 'wow', 'thinking']), 2400, 'a-hop', Math.random() < 0.5 ? rnd(phrases()) : '')],
@@ -202,6 +207,16 @@ export function petMount() {
   if (p.dataset.bound) return;
   p.dataset.bound = '1';
   let down = 0, moved = 0, lx = 0, ly = 0, long = null, handled = false;
+  const stage = document.getElementById('stage');
+  if (stage && !stage.dataset.tilt) {
+    stage.dataset.tilt = '1';
+    stage.addEventListener('pointermove', (e) => {
+      const r = stage.getBoundingClientRect(); const t = el()?.querySelector('.pet-tilt'); if (!t) return;
+      const dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5;
+      t.style.transform = `rotateY(${dx * 26 * st.face}deg) rotateX(${-dy * 14}deg)`;
+    });
+    stage.addEventListener('pointerleave', () => { const t = el()?.querySelector('.pet-tilt'); if (t) t.style.transform = ''; });
+  }
   p.addEventListener('pointerdown', (e) => { down = now(); moved = 0; lx = e.clientX; ly = e.clientY; handled = false; long = setTimeout(() => { handled = true; stroke(); }, 550); });
   p.addEventListener('pointermove', (e) => {
     if (!down) return;
