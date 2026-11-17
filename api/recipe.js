@@ -36,7 +36,7 @@ async function countUse(code) {
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const str = (v, n) => String(v ?? '').trim().slice(0, n);
-const getJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error('fetch ' + r.status); return r.json(); };
+const getJson = async (url) => { const r = await fetch(url, { signal: AbortSignal.timeout(10000) }); if (!r.ok) throw new Error('fetch ' + r.status); return r.json(); };
 
 /* ---------------- TheMealDB ---------------- */
 // kind → list filters to choose from (null = fully random)
@@ -97,6 +97,7 @@ async function translateGemini(r) {
 Приготування: ${r.steps.join(' ')}`;
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
     method: 'POST',
+    signal: AbortSignal.timeout(20000),
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.4 } }),
   });

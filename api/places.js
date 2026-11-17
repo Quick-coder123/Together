@@ -7,7 +7,8 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const DAILY_LIMIT = Number(process.env.PLACES_DAILY_LIMIT || 30);
 const UA = 'Hameleonchyky/1.0 (private couples app; https://hameleonchyky.vercel.app)';
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+const T = (ms) => AbortSignal.timeout(ms);
 
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -39,7 +40,7 @@ const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--
 /* ---------------- geocoding (Nominatim) ---------------- */
 async function geocodeCity(q) {
   const u = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=uk&q=${encodeURIComponent(q)}`;
-  const r = await fetch(u, { headers: { 'User-Agent': UA } });
+  const r = await fetch(u, { headers: { 'User-Agent': UA }, signal: T(8000) });
   if (!r.ok) throw new Error('geocode ' + r.status);
   const d = (await r.json())[0];
   if (!d) return null;
@@ -47,7 +48,7 @@ async function geocodeCity(q) {
 }
 async function reverse(lat, lon) {
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=12&accept-language=uk&lat=${lat}&lon=${lon}`, { headers: { 'User-Agent': UA } });
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=12&accept-language=uk&lat=${lat}&lon=${lon}`, { headers: { 'User-Agent': UA }, signal: T(6000) });
     const d = await r.json();
     const a = d.address || {};
     return str(a.city || a.town || a.village || a.suburb || a.county || d.name || '', 60);
@@ -78,22 +79,22 @@ function category(t) {
   return null;
 }
 async function overpass(lat, lon, radius) {
-  const around = `(around:${radius},${lat.toFixed(5)},${lon.toFixed(5)})`;
-  const q = `[out:json][timeout:20];(
+  const around = `(around:${Math.round(radius)},${lat.toFixed(5)},${lon.toFixed(5)})`;
+  const q = `[out:json][timeout:12];(
 nwr["amenity"~"^(cafe|ice_cream|restaurant|bar|pub|wine_bar|cinema|theatre|arts_centre)$"]["name"]${around};
 nwr["leisure"~"^(park|garden|water_park|bowling_alley|escape_game|miniature_golf|amusement_arcade|ice_rink|trampoline_park)$"]["name"]${around};
 nwr["tourism"~"^(museum|gallery|viewpoint|attraction|zoo|aquarium|theme_park)$"]["name"]${around};
-nwr["natural"~"^(beach|peak)$"]["name"]${around};
-);out center tags 400;`;
-  let lastErr;
-  for (const url of OVERPASS) {
-    try {
-      const r = await fetch(url, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) });
-      if (!r.ok) throw new Error('overpass ' + r.status);
-      return (await r.json()).elements || [];
-    } catch (e) { lastErr = e; }
-  }
-  throw lastErr;
+);out center tags 250;`;
+  // Ask all mirrors at once, take the first good answer, never wait longer than 16 s.
+  const ask = async (url) => {
+    const r = await fetch(url, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }, body: 'data=' + encodeURIComponent(q), signal: T(16000) });
+    if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
+    const d = await r.json();
+    if (!Array.isArray(d.elements)) throw new Error('bad overpass answer');
+    return d.elements;
+  };
+  try { return await Promise.any(OVERPASS.map(ask)); }
+  catch (e) { throw new Error('overpass: ' + (e.errors || [e]).map((x) => x.message).join('; ')); }
 }
 function distance(a, b, c, d) {
   const R = 6371000, toR = Math.PI / 180;
@@ -124,6 +125,7 @@ ${list}
 Поверни ЛИШЕ JSON: {"picks":[{"i":0,"why":"…","idea":"…"}]}`;
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
     method: 'POST',
+    signal: T(15000),
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.9 } }),
   });
@@ -144,6 +146,7 @@ export async function POST(request) {
   if (!room || !room.members?.[mid]) return json({ error: 'Пару не знайдено' }, 403);
   if ((await countUse(code)) > DAILY_LIMIT) return json({ error: `На сьогодні ліміт пошуку місць (${DAILY_LIMIT}) вичерпано. Завтра — нові!` }, 429);
   const kind = KINDS[body.kind] !== undefined ? body.kind : 'any';
+  const started = Date.now();
 
   try {
     let lat = Number(body.lat), lon = Number(body.lon), label = '', radius = 2500;
@@ -159,7 +162,7 @@ export async function POST(request) {
     }
 
     let els = await overpass(lat, lon, radius);
-    if (els.length < 8) els = await overpass(lat, lon, radius * 2.5);
+    if (els.length < 8 && Date.now() - started < 25000) els = await overpass(lat, lon, radius * 2.5).catch(() => els);
     const known = new Set((room.places || []).map((p) => String(p.name).toLowerCase()));
     const seen = new Set();
     const wanted = KINDS[kind];
@@ -203,7 +206,18 @@ export async function POST(request) {
     picks = picks.map(({ cuisine, type, ...p }) => ({ ...p, map: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${p.lat},${p.lon}`)}` }));
     return json({ where: label, ai, places: picks, attribution: '© OpenStreetMap' });
   } catch (e) {
-    console.error(e);
-    return json({ error: 'Не вдалося знайти місця. Спробуй ще раз за хвилинку.' }, 502);
+    console.error('places failed:', e.message);
+    return json({ error: e.name === 'TimeoutError' || /abort|timeout/i.test(e.message) ? 'Мапа зараз відповідає повільно. Спробуй ще раз за хвилинку.' : 'Не вдалося знайти місця. Спробуй ще раз за хвилинку.' }, 502);
   }
+}
+
+// Health check: /api/places?diag=1 — shows whether map services answer from the server.
+export async function GET(request) {
+  if (!new URL(request.url).searchParams.get('diag')) return json({ error: 'POST only' }, 405);
+  const out = {};
+  const time = async (name, fn) => { const t = Date.now(); try { const v = await fn(); out[name] = { ok: true, ms: Date.now() - t, info: v }; } catch (e) { out[name] = { ok: false, ms: Date.now() - t, error: e.message }; } };
+  await time('nominatim', async () => (await geocodeCity('Львів'))?.label);
+  await time('overpass', async () => (await overpass(49.8419, 24.0315, 1500)).length + ' places');
+  await time('gemini_key', async () => (GEMINI_KEY ? 'set' : 'missing'));
+  return json(out);
 }
