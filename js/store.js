@@ -249,7 +249,7 @@ export function openForm(cfg) {
       const show = (src) => { hid.value = src; prev.classList.toggle('has', !!src); prev.innerHTML = src ? `<img src="${esc(src)}" alt="">` : icon('image', 28); del.hidden = !src; box.querySelector('[data-img-l]').textContent = src ? 'Змінити фото' : 'Додати фото'; };
       box.querySelector('input[type=file]').onchange = async (e) => {
         const file = e.target.files?.[0]; if (!file) return;
-        try { show(await resizeImage(file, 320, 0.78)); } catch { toast('Не вдалося відкрити фото'); }
+        try { show(await resizeImage(file, 260, 0.72)); } catch { toast('Не вдалося відкрити фото'); }
       };
       del.onclick = () => show('');
     });

@@ -44,7 +44,8 @@ const abs = (src, base) => { try { const u = new URL(decode(src), base); return 
 function meta(html, key) {
   const re = new RegExp(`<meta[^>]+(?:property|name|itemprop)=["']${key}["'][^>]*>`, 'i');
   const tag = html.match(re)?.[0];
-  return tag ? decode(tag.match(/content=["']([^"']*)["']/i)?.[1] || '') : '';
+  const m = tag?.match(/content\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
+  return m ? decode(m[1] ?? m[2] ?? '') : '';
 }
 function jsonLdProduct(html) {
   const blocks = [...html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
@@ -74,7 +75,9 @@ export function parseProduct(html, url) {
   const title = ld.title || meta(html, 'og:title') || meta(html, 'twitter:title') || decode(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '');
   const price = ld.price ?? (meta(html, 'product:price:amount') || meta(html, 'og:price:amount') || meta(html, 'price'));
   const currency = ld.currency || meta(html, 'product:price:currency') || meta(html, 'og:price:currency') || meta(html, 'priceCurrency');
-  const image = abs(ld.image || meta(html, 'og:image') || meta(html, 'og:image:url') || meta(html, 'twitter:image') || '', url);
+  const linkImg = html.match(/<link[^>]+rel=["']image_src["'][^>]*>/i)?.[0]?.match(/href=["']([^"']+)["']/i)?.[1];
+  const propImg = html.match(/<img[^>]+itemprop=["']image["'][^>]*>/i)?.[0]?.match(/(?:data-src|src)=["']([^"']+)["']/i)?.[1];
+  const image = abs(ld.image || meta(html, 'og:image') || meta(html, 'og:image:secure_url') || meta(html, 'og:image:url') || meta(html, 'twitter:image') || meta(html, 'twitter:image:src') || linkImg || propImg || '', url);
   return {
     title: str(title, 200),
     description: str(decode(ld.description || meta(html, 'og:description') || meta(html, 'description')), 1000),
@@ -133,6 +136,32 @@ async function readByGemini(url) {
   return gemini([{ text: `Відкрий цю сторінку товару й визнач, що це за товар: ${url}\n${RULES}` }], { tools: [{ url_context: {} }], jsonMode: false, timeout: 40000 });
 }
 
+/* Photos are saved inside the wish as a small JPEG, so shop hot-link protection,
+   http links, webp/avif formats or a deleted product page never break the picture. */
+async function grab(url, headers = {}) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(9000), headers: { 'User-Agent': UA, Accept: 'image/avif,image/webp,image/*,*/*', ...headers } });
+  if (!r.ok) throw new Error('img ' + r.status);
+  const type = (r.headers.get('content-type') || '').split(';')[0];
+  const buf = Buffer.from(await r.arrayBuffer());
+  return { type, buf };
+}
+export async function embedImage(src, pageUrl) {
+  if (!src) return '';
+  const tries = [
+    async () => grab(`https://wsrv.nl/?url=${encodeURIComponent(src)}&w=260&h=260&fit=cover&a=attention&output=jpg&q=68`),
+    async () => grab(src, { Referer: pageUrl }),
+  ];
+  for (const t of tries) {
+    try {
+      const { type, buf } = await t();
+      if (!/^image\/(jpeg|png|webp)$/.test(type) || buf.length < 300) continue;
+      const data = `data:${type};base64,${buf.toString('base64')}`;
+      if (data.length <= 45000) return data;
+    } catch (e) { console.error('wish img', e.message); }
+  }
+  return /^https:\/\//.test(src) && src.length <= 600 ? src : '';
+}
+
 async function countUse(code) {
   const key = `wish:${code}:${new Date().toISOString().slice(0, 10)}`;
   const n = ((await kv.get(key)) || 0) + 1;
@@ -158,12 +187,14 @@ export async function scan(rawUrl) {
   if (!found?.title && !ai?.title) throw Object.assign(new Error(fetchErr ? 'Магазин не пустив Хамі на сторінку. Додай бажання вручну — посилання збережемо.' : 'Не вдалося розпізнати товар на сторінці'), { status: 422 });
 
   const f = found || {};
-  const image = abs((f.image || ai?.image || ''), u.href).replace(/^http:/, 'https:');
+  const rawImg = abs((f.image || ai?.image || ''), u.href);
+  const image = await embedImage(rawImg, u.href);
+  console.log('wish scan', u.hostname, { page: !fetchErr, ai: !!ai, img: rawImg ? rawImg.slice(0, 120) : 'none', saved: image.startsWith('data:') ? 'embedded' : image ? 'link' : 'none' });
   return {
     title: str(ai?.title || f.title, 100),
     note: str(ai?.description || f.description, 600),
     price: fmtPrice(f.price || ai?.price, f.currency || ai?.currency || (/\.ua$/.test(u.hostname) ? 'UAH' : '')) || '',
-    image: image.length <= 600 ? image : '',
+    image,
     link: u.href.slice(0, 300),
     site: str(f.site || u.hostname.replace(/^www\.|^m\./, ''), 60),
     ai: !!ai,
