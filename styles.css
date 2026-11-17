@@ -893,3 +893,6 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .meet-ic { font-size: 20px; flex: none; }
 .meet .btn { flex: none; }
 .card.blind .small svg, .carry svg { display: inline-block; vertical-align: -2px; }
+.go-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 11px; border-radius: 12px; background: var(--card2); color: var(--accent-t, #E7B98A); font-weight: 700; font-size: 13.5px; text-decoration: none; }
+.go-btn:active { transform: scale(.96); }
+@media (max-width: 360px) { .go-btn span { display: none; } .go-btn { padding: 0 9px; } }

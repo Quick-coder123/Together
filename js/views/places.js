@@ -49,12 +49,15 @@ export function placesView() {
 
 function placeCard(p) {
   const [em, cat] = CATS[p.cat] || CATS.other;
-  const map = /^https:\/\//.test(p.map || '') ? p.map : '';
+  const addrUrl = isUrl(p.address) ? p.address.trim() : '';
+  const link = addrUrl || (isUrl(p.map) ? p.map : '') || (p.address ? mapUrl(p.address) : '');
+  const host = addrUrl ? addrUrl.replace(/^https?:\/\/(www\.|m\.)?/i, '').split(/[/?#]/)[0] : '';
+  const isMap = !addrUrl || /maps|goo\.gl|openstreetmap|2gis|waze/i.test(host);
   return `<div class="card place ${p.visited ? 'visited' : ''}" data-a="editPlace" data-id="${p.id}" role="button" tabindex="0">
     <span class="place-em">${em}</span>
-    <span class="grow"><b>${esc(p.name)}</b><br><span class="muted small">${cat}${p.mode === 'plan' && p.date ? ` · ${fmtDate(p.date)}${p.time ? ' ' + p.time : ''}` : ''}${p.address ? ' · ' + esc(p.address) : ''}</span>
+    <span class="grow"><b>${esc(p.name)}</b><br><span class="muted small">${cat}${p.mode === 'plan' && p.date ? ` · ${fmtDate(p.date)}${p.time ? ' ' + p.time : ''}` : ''}${p.address && !addrUrl ? ' · ' + esc(p.address) : host ? ' · ' + esc(host) : ''}</span>
     ${p.visited ? `<br><span class="small ok-t">${icon('check', 14)} Були${p.rating ? ' · ' + '★'.repeat(p.rating) : ''}</span>` : ''}</span>
-    ${map ? `<a class="icon-btn xs map-btn" href="${esc(map)}" target="_blank" rel="noopener" aria-label="Відкрити на мапі">${icon('pin', 16)}</a>` : ''}
+    ${link ? `<a class="go-btn" href="${esc(link)}" target="_blank" rel="noopener" aria-label="${isMap ? 'Відкрити на мапі' : 'Перейти за посиланням'}">${icon(isMap ? 'pin' : 'out', 16)}<span>${isMap ? 'Мапа' : 'Відкрити'}</span></a>` : ''}
     <span class="check-b ${p.visited ? 'on' : ''}" data-a="visitPlace" data-id="${p.id}" role="checkbox" aria-checked="${!!p.visited}" aria-label="Були тут">${p.visited ? icon('check', 16) : ''}</span>
   </div>`;
 }
@@ -90,7 +93,7 @@ export function placeForm(p, preset = {}) {
       { key: 'mode', label: 'Тип', type: 'seg', value: v.mode || 'spont', options: [['spont', '⚡ Спонтанне'], ['plan', '📅 Заплановане']] },
       { key: 'date', label: 'Дата (для запланованого)', type: 'date', value: v.date },
       { key: 'time', label: 'Час', type: 'time', value: v.time },
-      { key: 'address', label: 'Адреса або посилання', value: v.address, max: 200 },
+      { key: 'address', label: 'Адреса або посилання', value: v.address, max: 300, placeholder: 'вул. Хрещатик, 1 або https://…' },
       { key: 'note', label: 'Нотатка', type: 'textarea', value: v.note, max: 400 },
       ...(p ? [{ key: 'visited', label: 'Ми тут уже були', type: 'check', value: p.visited }, { key: 'rating', label: 'Оцінка', type: 'seg', value: p.rating || '', options: [['', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']] }] : []),
     ],
