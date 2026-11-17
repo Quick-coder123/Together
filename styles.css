@@ -884,3 +884,5 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .wh-input input { flex: 1; min-width: 0; min-height: 46px; padding: 10px 14px; border-radius: 16px; background: var(--card2); border: 1.5px solid transparent; color: inherit; font: inherit; }
 .wh-input input:focus { outline: none; border-color: rgba(111,211,188,.6); }
 .wh-input .icon-btn { background: #2F9C84; color: #fff; flex: none; }
+.wh-log > .wh-msg { flex: none; }
+.wh-log > .wh-msg.err { max-width: 86%; }

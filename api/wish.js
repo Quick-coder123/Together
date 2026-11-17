@@ -5,9 +5,9 @@
 //    and finds the price in the text if the markup had none. If the shop blocks our server,
 //    Gemini reads the link itself (url_context tool).
 import { kv, roomKey } from './_notify.js';
+import { geminiJson } from './_gemini.js';
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const DAILY_LIMIT = Number(process.env.WISH_DAILY_LIMIT || 40);
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 
@@ -105,19 +105,8 @@ async function fetchPage(u) {
   return new TextDecoder('utf-8').decode(Buffer.concat(chunks.map((c) => Buffer.from(c))));
 }
 
-async function gemini(parts, { tools, jsonMode = true, timeout = 25000 } = {}) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
-    method: 'POST',
-    signal: AbortSignal.timeout(timeout),
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-    body: JSON.stringify({ contents: [{ role: 'user', parts }], ...(tools ? { tools } : {}), generationConfig: { temperature: 0.2, ...(jsonMode ? { responseMimeType: 'application/json' } : {}) } }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || 'Gemini ' + res.status);
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
-  const m = text.match(/\{[\s\S]*\}/);
-  return JSON.parse(m ? m[0] : text);
-}
+const gemini = (parts, { tools, jsonMode = true, timeout = 25000 } = {}) =>
+  geminiJson({ contents: [{ role: 'user', parts }], ...(tools ? { tools } : {}), generationConfig: { temperature: 0.2, ...(jsonMode ? { responseMimeType: 'application/json' } : {}) } }, { timeout });
 
 const RULES = `Поверни ЛИШЕ JSON: {"title":"…","description":"…","price":"…","currency":"UAH","image":"https://…"}
 - title: коротка назва товару (до 70 символів), з брендом і моделлю, без назви магазину, кодів і слів «купити», «ціна»;

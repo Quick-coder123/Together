@@ -6,9 +6,9 @@ import { kv, roomKey } from './_notify.js';
 import { itemsBetween } from '../js/derive.js';
 import { addDays } from '../lib/core.js';
 import { kyivParts } from './_remind.js';
+import { geminiJson } from './_gemini.js';
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const DAILY_LIMIT = Number(process.env.WHISPER_DAILY_LIMIT || 80);
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
@@ -64,17 +64,7 @@ const RULES = `Ти — Шептунчик, добрий і трохи грай�
 Поверни ЛИШЕ JSON: {"reply":"…","actions":[…]} (actions може бути порожнім).`;
 
 async function gemini(contents) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
-    method: 'POST',
-    signal: AbortSignal.timeout(25000),
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: RULES }] }, contents, generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || 'Gemini ' + res.status);
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
-  const m = text.match(/\{[\s\S]*\}/);
-  return JSON.parse(m ? m[0] : text);
+  return geminiJson({ systemInstruction: { parts: [{ text: RULES }] }, contents, generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } });
 }
 
 const CATS = ['cafe', 'restaurant', 'bar', 'park', 'museum', 'cinema', 'nature', 'active', 'home', 'other'];
@@ -125,6 +115,7 @@ export async function POST(request) {
     return json({ reply: str(r.reply, 600) || 'Готово!', actions: cleanActions(r.actions) });
   } catch (e) {
     console.error('whisper', e.message);
-    return json({ error: 'Шептунчик задумався й загубив думку. Спробуй ще раз 🙏' }, 502);
+    const busy = /high demand|overloaded|503|429|UNAVAILABLE/i.test(e.message);
+    return json({ error: busy ? 'ШІ зараз перевантажений (так буває у Google). Спробуй за хвилинку 🙏' : 'Шептунчик задумався й загубив думку. Спробуй ще раз 🙏' }, 502);
   }
 }
