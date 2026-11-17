@@ -34,7 +34,7 @@ on('wCreate', async (el) => {
   const name = nameVal();
   if (!name) return toast('Спершу введи своє імʼя');
   el.disabled = true;
-  try { S.me.name = name; LS.set('me', S.me); await create(name); go('me'); toast('Пару створено! Запроси свою половинку 💌'); }
+  try { S.me.name = name; LS.set('me', S.me); await create(name); go('me'); toast('Пару створено! 💌'); }
   catch (e) { toast(e.message); el.disabled = false; }
 });
 on('wJoin', async (el) => {
@@ -74,6 +74,7 @@ function nav() {
 }
 on('tab', (el) => go(el.dataset.t));
 
+let lastRoute = '';
 function render() {
   if (!S.code || !S.room) { app.innerHTML = welcomeView(); return; }
   const focused = document.activeElement;
@@ -81,7 +82,10 @@ function render() {
   const y = window.scrollY;
   const { tab, sub } = S.route;
   const body = tab === 'places' ? placesView() : tab === 'home' ? homeView() : tab === 'wish' ? wishView() : tab === 'more' ? moreView(sub) : meView();
-  app.innerHTML = `${header()}<main class="screen">${body}</main>${nav()}`;
+  const routeKey = tab + '/' + (sub || '');
+  const changed = routeKey !== lastRoute;
+  lastRoute = routeKey;
+  app.innerHTML = `${header()}<main class="screen${changed ? ' anim' : ''}">${body}</main>${nav()}`;
   window.scrollTo(0, y);
   if (fid) {
     const el = document.getElementById(fid);
@@ -92,6 +96,7 @@ S.render = render;
 
 /* ---------------- events ---------------- */
 document.addEventListener('click', (e) => {
+  if (e.target.closest('a[href]')) return; // real links (maps, sources) open normally
   const el = e.target.closest('[data-a]');
   if (!el || el.disabled) return;
   const fn = H[el.dataset.a];

@@ -26,6 +26,9 @@
   "functions": {
     "api/recipe.js": {
       "maxDuration": 60
+    },
+    "api/places.js": {
+      "maxDuration": 60
     }
   }
 }

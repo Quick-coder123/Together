@@ -1,9 +1,9 @@
 // «Місця» — places and dates.
-import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui } from '../store.js';
-import { esc, icon, emptyState, fmtDate } from '../ui.js';
+import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, LS } from '../store.js';
+import { esc, icon, emptyState, fmtDate, otter } from '../ui.js';
 
 export const CATS = {
-  cafe: ['☕', 'Кафе'], restaurant: ['🍽️', 'Ресторан'], park: ['🌳', 'Парк'], museum: ['🖼️', 'Виставка / музей'],
+  cafe: ['☕', 'Кафе'], restaurant: ['🍽️', 'Ресторан'], bar: ['🍷', 'Бар'], park: ['🌳', 'Парк'], museum: ['🖼️', 'Виставка / музей'],
   cinema: ['🎬', 'Кіно / театр'], nature: ['🏞️', 'Природа'], active: ['🛼', 'Активний відпочинок'], home: ['🏠', 'Вдома'], other: ['✨', 'Інше'],
 };
 
@@ -29,6 +29,10 @@ export function placesView() {
     <button class="tile sparkles" data-a="blind"><span class="tile-ic">${icon('mask')}</span><b>Побачення наосліп</b><span>Сюрприз для партнера</span></button>
   </div>
   ${blind.map(blindCard).join('')}
+  <button class="card ai-where" data-a="whereGo">
+    <span class="ic-box" style="background:linear-gradient(135deg,#34C38F,#2F80ED);color:#fff">${icon('sparkle')}</span>
+    <span class="grow"><b>Куди піти?</b><br><span class="muted small">ШІ підбере цікаві місця біля тебе або в обраному місті</span></span>${icon('chev', 18)}
+  </button>
   <div class="seg big">
     <button class="seg-b ${mode === 'spont' ? 'on' : ''}" data-a="placeMode" data-v="spont">${icon('bolt', 18)} Спонтанне</button>
     <button class="seg-b ${mode === 'plan' ? 'on' : ''}" data-a="placeMode" data-v="plan">${icon('cal', 18)} Заплановане</button>
@@ -44,12 +48,14 @@ export function placesView() {
 
 function placeCard(p) {
   const [em, cat] = CATS[p.cat] || CATS.other;
-  return `<button class="card place ${p.visited ? 'visited' : ''}" data-a="editPlace" data-id="${p.id}">
+  const map = /^https:\/\//.test(p.map || '') ? p.map : '';
+  return `<div class="card place ${p.visited ? 'visited' : ''}" data-a="editPlace" data-id="${p.id}" role="button" tabindex="0">
     <span class="place-em">${em}</span>
     <span class="grow"><b>${esc(p.name)}</b><br><span class="muted small">${cat}${p.mode === 'plan' && p.date ? ` · ${fmtDate(p.date)}${p.time ? ' ' + p.time : ''}` : ''}${p.address ? ' · ' + esc(p.address) : ''}</span>
     ${p.visited ? `<br><span class="small ok-t">${icon('check', 14)} Були${p.rating ? ' · ' + '★'.repeat(p.rating) : ''}</span>` : ''}</span>
+    ${map ? `<a class="icon-btn xs map-btn" href="${esc(map)}" target="_blank" rel="noopener" aria-label="Відкрити на мапі">${icon('pin', 16)}</a>` : ''}
     <span class="check-b ${p.visited ? 'on' : ''}" data-a="visitPlace" data-id="${p.id}" role="checkbox" aria-checked="${!!p.visited}" aria-label="Були тут">${p.visited ? icon('check', 16) : ''}</span>
-  </button>`;
+  </div>`;
 }
 
 function blindCard(b) {
@@ -150,3 +156,83 @@ export function blindForm(b) {
 on('blind', () => blindForm());
 on('editBlind', (el, e) => { if (e.target.closest('[data-a="revealBlind"]')) return; blindForm(S.room.blind.find((x) => x.id === el.dataset.id)); });
 on('revealBlind', (el) => { if (confirm('Розкрити план партнеру зараз?')) act({ type: 'update', col: 'blind', id: el.dataset.id, patch: { revealed: true } }); });
+
+/* ---------------- AI: where to go ---------------- */
+const WHERE_KINDS = [['any', '🎲 Будь-що'], ['coffee', '☕ Кава й десерти'], ['food', '🍽️ Поїсти'], ['walk', '🌳 Прогулянка'], ['culture', '🎭 Культура'], ['active', '🛼 Активно'], ['evening', '🌙 Вечір']];
+const km = (m) => (m < 1000 ? `${Math.round(m / 10) * 10} м` : `${(m / 1000).toFixed(1).replace('.', ',')} км`);
+
+function whereForm(sh) {
+  const k = ui('whereKind', 'any');
+  const city = LS.get('lastCity', '');
+  sh.innerHTML = `<div class="grab"></div>
+    <div class="sheet-h"><h3>✨ Куди піти?</h3></div>
+    <p class="muted small" style="margin-top:-6px">ШІ знайде справжні місця поруч і підкаже, що там зробити удвох.</p>
+    <div class="sec-label">ЩО ХОЧЕТЬСЯ</div>
+    <div class="pills wrap-pills">${WHERE_KINDS.map(([v, l]) => `<button class="pill ${k === v ? 'on' : ''}" data-k="${v}">${l}</button>`).join('')}</div>
+    <div class="sec-label">ДЕ ШУКАЄМО</div>
+    <button class="btn block" data-geo>${icon('pin', 18)} Біля мене</button>
+    <div class="divider-t">або в місті</div>
+    <form class="add-line" data-city-form>${icon('search', 20)}<input id="where-city" placeholder="Київ, Львів, Одеса…" value="${esc(city)}" maxlength="80" autocomplete="off" enterkeyhint="search"><button class="send sm" type="submit" aria-label="Шукати">${icon('chev', 18)}</button></form>`;
+  sh.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => { S.ui.whereKind = b.dataset.k; sh.querySelectorAll('[data-k]').forEach((x) => x.classList.toggle('on', x === b)); });
+  sh.querySelector('[data-geo]').onclick = () => {
+    if (!navigator.geolocation) { toast('Телефон не дає геолокацію. Вкажи місто.'); return; }
+    whereLoading(sh, 'Визначаємо, де ви…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => whereSearch(sh, { lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => { toast('Немає доступу до геолокації. Вкажи місто вручну.'); whereForm(sh); },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 },
+    );
+  };
+  sh.querySelector('[data-city-form]').onsubmit = (e) => {
+    e.preventDefault();
+    const c = sh.querySelector('#where-city').value.trim();
+    if (!c) { toast('Напиши місто'); return; }
+    LS.set('lastCity', c);
+    whereSearch(sh, { city: c });
+  };
+}
+function whereLoading(sh, text) {
+  sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'happy', size: 110, bob: true })}<div class="spin"></div><b>${esc(text)}</b><p class="muted small">Зазвичай 5–20 секунд</p></div>`;
+}
+async function whereSearch(sh, where) {
+  whereLoading(sh, 'Шукаємо цікаві місця…');
+  try {
+    const res = await fetch('/api/places', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('whereKind', 'any'), ...where }) });
+    const data = await res.json().catch(() => ({}));
+    if (!sh.isConnected) return;
+    if (!res.ok) throw new Error(data.error === 'not_configured' ? 'Сервер ще не підключено до бази даних.' : data.error || 'Не вдалося знайти місця.');
+    whereResults(sh, data, where);
+  } catch (e) {
+    if (!sh.isConnected) return;
+    sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(e.message === 'Failed to fetch' ? 'Немає звʼязку. Перевір інтернет.' : e.message)}</p></div>
+      <button class="btn block" data-retry>Спробувати ще</button><button class="btn secondary block" data-back>Змінити місце</button>`;
+    sh.querySelector('[data-retry]').onclick = () => whereSearch(sh, where);
+    sh.querySelector('[data-back]').onclick = () => whereForm(sh);
+  }
+}
+function whereResults(sh, data, where) {
+  sh.innerHTML = `<div class="grab"></div>
+    <div class="sheet-h"><h3>${data.where ? `📍 ${esc(data.where)}` : '📍 Поруч'}</h3><button class="btn sm secondary" data-back>Змінити</button></div>
+    ${data.ai ? '' : '<p class="muted small">Підказки прості: ШІ зараз недоступний.</p>'}
+    <div class="where-list">${data.places.map((p, i) => {
+      const [em, cat] = CATS[p.cat] || CATS.other;
+      return `<div class="where-i" style="--i:${i}">
+        <div class="row"><span class="place-em">${em}</span><div class="grow"><b>${esc(p.name)}</b><br><span class="muted small">${cat} · ${km(p.dist)}${p.address ? ' · ' + esc(p.address) : ''}</span></div></div>
+        ${p.why ? `<p class="small" style="margin:8px 0 0">${esc(p.why)}</p>` : ''}
+        ${p.idea ? `<div class="hint small">💡 ${esc(p.idea)}</div>` : ''}
+        <div class="row gap mt"><a class="btn sm secondary" href="${esc(p.map)}" target="_blank" rel="noopener">${icon('pin', 16)} Мапа</a><button class="btn sm" data-add="${i}">${icon('plus', 16)} Додати</button></div>
+      </div>`;
+    }).join('')}</div>
+    <button class="btn secondary block" data-more>${icon('dice', 18)} Інші варіанти</button>
+    <p class="center muted small">Дані мапи © OpenStreetMap</p>`;
+  sh.querySelector('[data-back]').onclick = () => whereForm(sh);
+  sh.querySelector('[data-more]').onclick = () => whereSearch(sh, where);
+  sh.querySelectorAll('[data-add]').forEach((b) => b.onclick = async () => {
+    const p = data.places[+b.dataset.add];
+    b.disabled = true;
+    const note = [p.why, p.idea && '💡 ' + p.idea].filter(Boolean).join('\n');
+    const ok = await act({ type: 'add', col: 'places', item: { name: p.name, cat: p.cat, mode: 'spont', address: p.address, map: p.map, note } });
+    if (ok) { b.innerHTML = `${icon('check', 16)} Додано`; b.classList.add('done'); } else b.disabled = false;
+  });
+}
+on('whereGo', () => { const sh = openSheet(''); whereForm(sh); });

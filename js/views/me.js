@@ -175,7 +175,38 @@ on('step', (el) => {
   else if (id === 'invite') share();
   else if (id === 'date') addDateForm();
 });
-on('mood', (el) => act({ type: 'mood', value: el.dataset.v }));
+on('mood', async (el) => {
+  const v = el.dataset.v;
+  const prev = S.room.moods[S.me.id];
+  // Instant feedback: mark it right away, then save.
+  S.room.moods[S.me.id] = { value: v, date: today(), ts: Date.now() };
+  S.render();
+  navigator.vibrate?.(12);
+  const btn = document.querySelector(`.mood[data-v="${v}"]`);
+  btn?.classList.add('pop');
+  moodBurst(btn, { great: ['💚', '✨', '🎉'], ok: ['💛', '🙂', '☀️'], sad: ['💙', '🫂', '☁️'] }[v]);
+  const o = document.querySelector('.pet-otter');
+  if (o) { o.classList.remove('recolor'); void o.offsetWidth; o.classList.add('recolor'); }
+  const ok = await act({ type: 'mood', value: v }, { render: false });
+  if (!ok) { S.room.moods[S.me.id] = prev; S.render(); return; }
+  S.render();
+  toast({ great: 'Відмінно! 💚', ok: 'Норм 💛', sad: 'Обіймаю 💙' }[v]);
+});
+function moodBurst(btn, emojis) {
+  if (!btn) return;
+  const r = btn.getBoundingClientRect();
+  for (let i = 0; i < 6; i++) {
+    const s = document.createElement('span');
+    s.className = 'burst';
+    s.textContent = emojis[i % emojis.length];
+    s.style.left = r.left + r.width / 2 + 'px';
+    s.style.top = r.top + r.height / 2 + 'px';
+    s.style.setProperty('--dx', `${(Math.random() - 0.5) * 160}px`);
+    s.style.setProperty('--dy', `${-60 - Math.random() * 90}px`);
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 1100);
+  }
+}
 on('feed', async (el, e) => {
   e.stopPropagation();
   if (await act({ type: 'feed' })) { floaty('🦗'); setTimeout(() => floaty('💕'), 300); toast('Ням! +10 досвіду'); }

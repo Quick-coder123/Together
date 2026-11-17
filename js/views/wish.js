@@ -39,7 +39,7 @@ function giftCard(g, whose) {
   const prep = g.prep;
   const prepMine = prep?.by === S.me.id;
   return `<section class="card gift ${g.received ? 'visited' : ''}">
-    <div class="row"><span class="place-em">🎁</span><div class="grow"><b>${esc(g.title)}</b>${g.price ? ` <span class="muted small">· ${esc(g.price)}</span>` : ''}
+    <div class="row"><span class="place-em">🎁</span><div class="grow"><b>${esc(g.title)}</b>${g.price ? ` <span class="muted small nowrap">· ${esc(g.price)}</span>` : ''}
       ${g.note ? `<div class="muted small">${esc(g.note)}</div>` : ''}${g.received ? `<div class="small ok-t">${icon('check', 14)} Отримано</div>` : ''}</div>
       ${whose === 'me' || g.by === S.me.id ? `<button class="icon-btn xs ghost" data-a="giftEdit" data-id="${g.id}" aria-label="Редагувати">${icon('pencil', 16)}</button>` : ''}</div>
     ${safeLink ? `<a class="small link-out" href="${esc(safeLink)}" target="_blank" rel="noopener">${icon('link', 14)} ${esc(safeLink.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40))}</a>` : ''}

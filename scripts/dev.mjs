@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import * as stateApi from '../api/state.js';
 import * as recipeApi from '../api/recipe.js';
-const apis = { '/api/state': stateApi, '/api/recipe': recipeApi };
+import * as placesApi from '../api/places.js';
+const apis = { '/api/state': stateApi, '/api/recipe': recipeApi, '/api/places': placesApi };
 
 const root = new URL('..', import.meta.url).pathname;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };

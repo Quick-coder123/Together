@@ -143,7 +143,7 @@ export function otter({ face = 'happy', pose = 'sit', water = false, outfit = ''
     <ellipse cx="100" cy="98" rx="50" ry="38" fill="${c}"/>
     <ellipse cx="100" cy="112" rx="32" ry="16" fill="${l}" opacity=".7"/>
     <ellipse cx="70" cy="114" rx="8" ry="5" fill="${blush}" opacity=".7"/><ellipse cx="130" cy="114" rx="8" ry="5" fill="${blush}" opacity=".7"/>
-    ${eye(64, 86)}${eye(136, 86)}
+    <g class="eyes">${eye(64, 86)}${eye(136, 86)}</g>
     <g fill="${d}"><circle cx="94" cy="104" r="1.8"/><circle cx="106" cy="104" r="1.8"/></g>
     ${mouth}
     ${outfit ? `<text x="${outfit === '🕶️' ? 100 : outfit === '🧣' ? 100 : 100}" y="${outfit === '🕶️' ? 98 : outfit === '🧣' ? 142 : 48}" font-size="${outfit === '🕶️' ? 50 : 36}" text-anchor="middle">${outfit}</text>` : ''}
