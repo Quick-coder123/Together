@@ -19,7 +19,7 @@ function label(a) {
     case 'reminder': return ['⏰', a.title, `${day(a.date)} о ${a.time} · ${whoName(a.who)}`];
     case 'shop': return ['🛒', `${a.cat === 'other' ? 'Покупки' : 'Продукти'}: ${a.items.length}`, a.items.map((i) => `${i.text} (${i.qty})`).join(', ')];
     case 'place': return [CAT[a.cat] || '📍', a.name, a.date ? `${day(a.date)}${a.time ? ' о ' + a.time : ''}` : 'у список місць'];
-    case 'blind': return ['🎭', 'Побачення наосліп', `${day(a.date)}${a.time ? ' о ' + a.time : ''}${a.dress ? ' · ' + a.dress : ''}`];
+    case 'blind': return ['🎭', 'Побачення наосліп', `${day(a.date)}${a.time ? ' о ' + a.time : ''}${a.meet ? ' · ' + (/^https?:/i.test(a.meet) ? 'місце на мапі' : a.meet) : ''}${a.dress ? ' · ' + a.dress : ''}`];
     case 'chore': return ['🧹', a.text, `${{ none: 'один раз', daily: 'щодня', weekly: 'щотижня', monthly: 'щомісяця' }[a.repeat]}${a.who !== 'none' ? ' · ' + whoName(a.who) : ''}`];
     case 'gift': return ['🎁', a.title, `у мій вішліст${a.price ? ' · ' + a.price : ''}`];
     case 'watch': return ['🎬', a.title, 'подивитися'];
@@ -42,7 +42,7 @@ async function apply(a) {
       return act({ type: 'shopList', cat: a.cat, items: a.items, fresh }, { render: false });
     }
     case 'place': return add('places', { name: a.name, cat: a.cat, address: a.address, note: a.note, mode: a.date ? 'plan' : 'spont', date: a.date || null, time: a.time || null });
-    case 'blind': return add('blind', { date: a.date, time: a.time || null, hint: a.hint, dress: a.dress, details: a.details });
+    case 'blind': return add('blind', { date: a.date, time: a.time || null, meet: a.meet, hint: a.hint, dress: a.dress, details: a.details });
     case 'chore': return add('chores', { text: a.text, repeat: a.repeat, who: who(a.who) });
     case 'gift': return add('gifts', { title: a.title, note: a.note, price: a.price, owner: S.me.id });
     case 'watch': return add('watch', { title: a.title, kind: a.kind });

@@ -59,12 +59,19 @@ function placeCard(p) {
   </div>`;
 }
 
+const isUrl = (v) => /^https?:\/\//i.test(v || '');
+export const mapUrl = (v) => (isUrl(v) ? v : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`);
+function meetRow(v) {
+  return `<div class="meet mt"><span class="meet-ic">📍</span><span class="grow"><span class="muted small">Місце зустрічі</span><br><b>${isUrl(v) ? 'Локація на мапі' : esc(v)}</b></span>
+    <a class="btn sm secondary" href="${esc(mapUrl(v))}" target="_blank" rel="noopener">${icon('pin', 16)} Мапа</a></div>`;
+}
 function blindCard(b) {
   const mineB = b.by === S.me.id;
   const open = mineB || b.revealed || (b.date && b.date <= today());
   return `<section class="card blind" ${mineB ? `data-a="editBlind" data-id="${b.id}"` : ''}>
     <div class="row"><span class="ic-box pink">${icon('mask')}</span><div class="grow"><b>${mineB ? 'Твоє побачення наосліп' : `Сюрприз для тебе · ${esc(nameOf(b.by))}`}</b><br>
     <span class="muted small">${b.date ? fmtDate(b.date, { weekday: true }) : 'Дата ще не обрана'}${b.time ? ' · ' + b.time : ''}</span></div>${mineB ? icon('pencil', 18) : ''}</div>
+    ${b.meet ? meetRow(b.meet) : ''}
     ${b.hint ? `<div class="hint">💡 ${esc(b.hint)}</div>` : ''}
     ${b.dress ? `<div class="small mt">👗 Дрес-код: ${esc(b.dress)}</div>` : ''}
     ${open && b.details ? `<div class="answer mt">${esc(b.details)}</div>` : !open ? `<div class="small muted mt">${icon('lock', 14)} Деталі відкриються в день побачення</div>` : ''}
@@ -143,10 +150,11 @@ on('randomPlace', () => {
 export function blindForm(b) {
   openForm({
     title: b ? 'Побачення наосліп' : 'Сплануй побачення наосліп',
-    intro: 'Партнер бачитиме лише дату, час і підказку. Деталі відкриються в день побачення.',
+    intro: 'Партнер бачитиме дату, час, місце зустрічі й підказку. Секретний план відкриється в день побачення.',
     fields: [
       { key: 'date', label: 'Дата', type: 'date', value: b?.date, required: true },
       { key: 'time', label: 'Час', type: 'time', value: b?.time },
+      { key: 'meet', label: 'Місце зустрічі', value: b?.meet, placeholder: 'Адреса або посилання на мапу', max: 300 },
       { key: 'hint', label: 'Підказка для партнера', value: b?.hint, placeholder: 'Візьми теплий светр 😉', max: 120 },
       { key: 'dress', label: 'Дрес-код', value: b?.dress, placeholder: 'Зручне взуття', max: 80 },
       { key: 'details', label: 'Секретний план (видно лише тобі)', type: 'textarea', rows: 4, value: b?.details, max: 600 },

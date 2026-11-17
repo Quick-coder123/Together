@@ -54,7 +54,7 @@ const RULES = `Ти — Шептунчик, добрий і трохи грай�
 - "reminder": нагадування-пуш {title, date, time, who:"me"|"partner"|"both"}
 - "shop": покупки {items:[{text, qty, note}], cat:"food"|"other"} — qty обовʼязково (якщо не сказано: "1" або "1 шт", для ваги/обʼєму — розумна кількість)
 - "place": місце, куди сходити {name, cat:"cafe"|"restaurant"|"bar"|"park"|"museum"|"cinema"|"nature"|"active"|"home"|"other", date, time, address, note} (з датою — заплановане)
-- "blind": побачення наосліп-сюрприз для пари {date, time, hint, dress, details}
+- "blind": побачення наосліп-сюрприз для пари {date, time, meet (місце зустрічі: адреса або посилання), hint, dress, details}
 - "chore": домашня справа {text, repeat:"none"|"daily"|"weekly"|"monthly", who:"me"|"partner"|"none"}
 - "gift": бажання у мій вішліст {title, note, price}
 - "watch": фільм/серіал подивитися {title, kind:"film"|"series"|"cartoon"|"show"|"other"}
@@ -83,7 +83,7 @@ export function cleanActions(list) {
         break;
       }
       case 'place': if (str(a.name, 80)) out.push({ type: 'place', name: str(a.name, 80), cat: pick(a.cat, CATS, 'other'), date: d, time: t, address: str(a.address, 200), note: str(a.note, 400) }); break;
-      case 'blind': if (d) out.push({ type: 'blind', date: d, time: t, hint: str(a.hint, 120), dress: str(a.dress, 80), details: str(a.details, 600) }); break;
+      case 'blind': if (d) out.push({ type: 'blind', date: d, time: t, meet: str(a.meet, 300), hint: str(a.hint, 120), dress: str(a.dress, 80), details: str(a.details, 600) }); break;
       case 'chore': if (str(a.text, 100)) out.push({ type: 'chore', text: str(a.text, 100), repeat: pick(a.repeat, ['none', 'daily', 'weekly', 'monthly'], 'none'), who: pick(a.who, ['me', 'partner', 'none'], 'none') }); break;
       case 'gift': if (str(a.title, 100)) out.push({ type: 'gift', title: str(a.title, 100), note: str(a.note, 600), price: str(a.price, 30) }); break;
       case 'watch': if (str(a.title, 100)) out.push({ type: 'watch', title: str(a.title, 100), kind: pick(a.kind, ['film', 'series', 'cartoon', 'show', 'other'], 'film') }); break;

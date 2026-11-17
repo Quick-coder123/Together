@@ -71,9 +71,9 @@ export function remindersDue(room, from, to) {
       const org = src.by, guest = other(org);
       if (at(eve)) {
         out.push({ key: `eve:${k}`, to: [org], title: 'Завтра сюрприз 🎭', body: `Завтра${when} — твоє побачення-сюрприз. ${guest ? name(guest) + ' ще нічого не знає 😉 ' : ''}Все готово?`, tag: 'blind' });
-        if (guest) out.push({ key: `eve2:${k}`, to: [guest], title: 'Тссс… 🤫', body: `Завтра${when} на тебе чекає побачення-сюрприз! Організатор: ${name(org)}.${src.dress ? ` Дрес-код: ${src.dress}.` : ''}`, tag: 'blind' });
+        if (guest) out.push({ key: `eve2:${k}`, to: [guest], title: 'Тссс… 🤫', body: `Завтра${when} на тебе чекає побачення-сюрприз! Організатор: ${name(org)}.${src.meet ? (/^https?:/i.test(src.meet) ? ' Місце зустрічі — в застосунку.' : ` Зустріч: ${src.meet}.`) : ''}${src.dress ? ` Дрес-код: ${src.dress}.` : ''}`, tag: 'blind' });
       }
-      if (soon && at(soon)) out.push({ key: `soon:${k}`, to: members, title: 'Через 2 години 🎭', body: `Побачення наосліп${when}. ${guest ? `${name(guest)}, готуйся до сюрпризу!` : ''}`.trim(), tag: 'blind', urgent: true });
+      if (soon && at(soon)) out.push({ key: `soon:${k}`, to: members, title: 'Через 2 години 🎭', body: `Побачення наосліп${when}.${src.meet && !/^https?:/i.test(src.meet) ? ` Зустріч: ${src.meet}.` : ''} ${guest ? `${name(guest)}, готуйся до сюрпризу!` : ''}`.trim(), tag: 'blind', urgent: true });
       continue;
     }
     const emoji = it.kind === 'place' ? '📍' : src.kind === 'date' ? '💞' : '📅';

@@ -22,7 +22,7 @@ export function buildIcs(room, now = Date.now()) {
     const [col, id] = it.ref || ['x', it.title];
     const src = col ? (room[col] || []).find((x) => x.id === id) : null;
     let title = it.title, desc = '', loc = '';
-    if (it.kind === 'blind') { title = '🎭 Побачення наосліп'; desc = src?.dress ? 'Дрес-код: ' + src.dress : 'Сюрприз!'; }
+    if (it.kind === 'blind') { title = '🎭 Побачення наосліп'; desc = [src?.dress ? 'Дрес-код: ' + src.dress : 'Сюрприз!', /^https?:/i.test(src?.meet || '') ? 'Місце зустрічі: ' + src.meet : ''].filter(Boolean).join('\n'); loc = src?.meet || ''; }
     else if (it.kind === 'place') { title = '📍 ' + it.title; loc = src?.address || ''; desc = src?.note || ''; }
     else if (it.kind === 'important') title = '🎉 ' + it.title;
     else if (it.kind === 'reminder') title = '⏰ ' + it.title;
