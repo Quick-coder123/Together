@@ -1,11 +1,11 @@
 // «Ми» — the main screen.
 import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, LS } from '../store.js';
-import { esc, icon, otter, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
-import { MEALS, mealAt, mealsOf, mealsDone, levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
+import { esc, icon, otter, hami, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
+import { kyivHour, MEALS, mealAt, mealsOf, mealsDone, levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
 import { GAMES, pickGame } from '../games.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
 
-const MOOD_FACE = { great: 'love', ok: 'ok', sad: 'sad' };
+const MOOD_POSE = { great: 'great', ok: 'normal', sad: 'sad' };
 
 export function meView() {
   const r = S.room;
@@ -70,9 +70,9 @@ function stepsCard(r, pid) {
 }
 
 const em = (slot, id) => itemOf(slot, id)?.e || '';
-function petSvg(look, face, color, size, extra = {}) {
-  const fixed = look.skin !== 'mood' ? look.skin : null;
-  return otter({ face, color, size, bob: true, look: { skin: fixed || undefined, pattern: look.pattern, hat: em('hat', look.hat), eyes: em('eyes', look.eyes), neck: em('neck', look.neck), back: em('back', look.back), hand: em('hand', look.hand) }, ...extra });
+function petSvg(look, pose, color, size) {
+  const c = look.skin && look.skin !== 'mood' ? look.skin : color;
+  return hami(pose, { size, color: c, bob: true, hat: em('hat', look.hat), near: em('hand', look.hand) });
 }
 const DECO = { forest: '🌿 🍃', meadow: '🌼 🌷 🐝', beach: '☀️ 🌊 🐚', sakura: '🌸 🌸 🌸', snow: '❄️ ⛄ ❄️', sunset: '🌅 🕊️', night: '🌙 ✨ ⭐', space: '🪐 ✨ 🌠', aurora: '✨ 🌌 ✨' };
 const sceneDeco = (sc) => `<span class="deco" aria-hidden="true">${(DECO[sc] || '').split(' ').map((e, i) => `<i style="--i:${i}">${e}</i>`).join('')}</span>`;
@@ -84,9 +84,11 @@ function petCard(r, t) {
   const fed = !!meals[cur] || nMeals === 3;
   const myMood = r.moods[S.me.id];
   const todayMood = myMood?.date === t ? myMood.value : null;
-  const hungry = isHungry(pet, t);
-  const face = !fed ? 'sad' : todayMood === 'great' ? 'love' : todayMood === 'sad' ? 'ok' : 'happy';
-  const color = !fed ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
+  const hungry = !!pet.lastFed && isHungry(pet, t);
+  const h = kyivHour();
+  const night = (h >= 23 || h < 7) && nMeals > 0;
+  const face = night ? 'sleep' : hungry ? 'tired' : !fed ? 'thinking' : todayMood ? MOOD_POSE[todayMood] : nMeals === 3 ? 'joy' : 'cool';
+  const color = hungry ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
   const look = lookOf(pet);
   const tasks = tasksFor(t);
   const claimed = r.daily?.[t]?.[S.me.id]?.claimed || {};
@@ -125,8 +127,8 @@ function moodCard(r, pid, t) {
     <h3 class="h3">Як ти сьогодні?</h3>
     <div class="moods">${Object.entries(MOODS).map(([k, label]) => `
       <button class="mood m-${k} ${mine?.date === t && mine.value === k ? 'on' : ''}" data-a="mood" data-v="${k}">
-        <span class="mood-face">${otter({ face: MOOD_FACE[k], size: 38 })}</span>${label}</button>`).join('')}</div>
-    ${pid ? partnerMood(r, pid, theirs, t) : `<div class="p-mood old"><span class="p-mood-f">${otter({ face: 'ok', size: 40 })}</span><span class="grow"><span class="muted small">Настрій партнера</span><br><b>Тут зʼявиться, коли пара приєднається</b></span></div>`}
+        <span class="mood-face">${hami(MOOD_POSE[k], { size: 46 })}</span>${label}</button>`).join('')}</div>
+    ${pid ? partnerMood(r, pid, theirs, t) : `<div class="p-mood old"><span class="p-mood-f">${hami('hide', { size: 44 })}</span><span class="grow"><span class="muted small">Настрій партнера</span><br><b>Тут зʼявиться, коли пара приєднається</b></span></div>`}
   </section>`;
 }
 
@@ -135,7 +137,7 @@ function partnerMood(r, pid, m, t) {
   const fresh = m && m.date === t;
   const when = !m ? '' : fresh ? `сьогодні о ${new Date(m.ts).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}` : m.date === addDays(t, -1) ? 'вчора' : m.date ? fmtDate(m.date) : '';
   return `<div class="p-mood ${m ? 'pm-' + m.value : ''} ${fresh ? '' : 'old'}">
-    <span class="p-mood-f">${m ? otter({ face: MOOD_FACE[m.value], size: 40 }) : otter({ face: 'ok', size: 40 })}</span>
+    <span class="p-mood-f">${hami(m ? MOOD_POSE[m.value] : 'think', { size: 44 })}</span>
     <span class="grow"><span class="muted small">${esc(p.name || "Партнер")} зараз</span><br>
       <b>${m ? MOODS[m.value] : 'ще не відмічено'}</b>${when ? `<span class="muted small"> · ${when}</span>` : ''}</span>
     ${m && fresh && m.value === 'sad' ? '<span class="p-mood-hint">🫂</span>' : ''}
@@ -256,7 +258,7 @@ function gameSheet(game) {
       if (finished || !box.isConnected) return;
       finished = true;
       sh.querySelector('[data-other]').remove();
-      box.innerHTML = `<div class="center pad">${otter({ face: win ? 'love' : 'sad', size: 90 })}<div class="muted">Зачекай…</div></div>`;
+      box.innerHTML = `<div class="center pad">${hami(win ? 'joy' : 'sad', { size: 100 })}<div class="muted">Зачекай…</div></div>`;
       const ok = await act({ type: 'game', game: g.id, win }, { silent: true });
       if (!box.isConnected) return;
       const lf = S.room.pet.lastFind;
@@ -268,7 +270,7 @@ function gameSheet(game) {
           <div class="rar r-${f.r}">${RARITY[f.r]}${count === 1 ? ' · новинка в колекції!' : ` · уже ×${count}`}</div>
           <div class="small muted mt">${lf.xp ? `+${lf.xp} досвіду улюбленцю` : lf.hungry ? '🦗 Хамелеон голодний — погодуй його, щоб ігри давали досвід' : 'Досвід за ігри на сьогодні вже зібрано, але знахідки є завжди 😉'}</div></div>
           <div class="grid2 mt"><button class="btn" data-again>🎮 Ще гра</button><button class="btn secondary" data-coll>🍃 Колекція</button></div>`
-        : `<div class="g-reward"><div class="g-find">${otter({ face: 'sad', size: 110 })}</div><h3 class="h3">${win ? 'Перемога!' : 'Майже вийшло!'}</h3>
+        : `<div class="g-reward"><div class="g-find">${hami(win ? 'wow' : 'sad', { size: 120 })}</div><h3 class="h3">${win ? 'Перемога!' : 'Майже вийшло!'}</h3>
           <p class="muted">${win ? 'Не вдалося звʼязатися із сервером — знахідку не збережено.' : 'Хамелеон вірить у тебе. Спробуєш ще?'}</p></div>
           <div class="grid2 mt"><button class="btn" data-retry>Ще раз</button><button class="btn secondary" data-again>${icon('dice', 16)} Інша гра</button></div>`;
       box.querySelector('[data-again]')?.addEventListener('click', () => gameSheet());
@@ -332,7 +334,8 @@ on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за ул�
   <p>🎮 <b>Ігри</b> — +${XP.game} за перемогу (до ${XP.gameDay} на день) і знахідка в колекцію. Ігор 11, щоразу випадає інша.</p>
   <p>💞 <b>Справжні зустрічі</b> важать більше: «Були тут» на місці — +${XP.visit}, спільний чек-ін тижня — +${XP.checkin}.</p>
   <p>🏅 <b>Нагороди</b> за серії, перемоги, записки, побачення й колекцію — дають досвід і відкривають особливі речі.</p>
-  <p>👕 <b>Гардероб</b>: головні убори, окуляри, прикраси на шию, речі на спинку й у лапку, колір шкіри, візерунок і фон. Відкриваються з рівнями й нагородами.</p>
+  <p>👕 <b>Гардероб</b>: щось на кепку, річ поруч із Хамі, колір шкіри й фон. Відкриваються з рівнями й нагородами.</p>
+  <p>🦎 <b>Настрій Хамі</b> видно одразу: чекає їжу — задумався, голодний — втомлений, ситий на весь день — радіє, а вночі спить.</p>
   <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10). Корона — на 8 рівні.</p></div>
   <button class="btn block mt" data-close>Зрозуміло</button>`, (el) => { el.querySelector('[data-close]').onclick = closeSheet; }));
 
@@ -355,7 +358,7 @@ function wardrobeSheet(slot = 'hat') {
   const items = ITEMS.filter((x) => x.slot === slot);
   const swatch = (it) => (it.slot === 'skin' ? (it.e.startsWith('#') ? `<span class="sw" style="background:${it.e}"></span>` : `<span class="wd-e">${it.e}</span>`) : `<span class="wd-e">${it.e || '🚫'}</span>`);
   openSheet(`<div class="sheet-h"><h3>Гардероб</h3><span class="chip">рівень ${lv}</span></div>
-    <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${petSvg(look, 'happy', 'green', 150)}</div>
+    <div class="wd-preview pet-scene scene-${look.scene}">${sceneDeco(look.scene)}${petSvg(look, 'cool', 'green', 170)}</div>
     <div class="wd-tabs">${Object.entries(SLOTS).map(([k, n]) => `<button class="pill ${k === slot ? 'on' : ''}" data-slot="${k}">${n}</button>`).join('')}</div>
     <div class="wardrobe-grid">${items.map((it) => {
       const ok = unlocked(S.room, it);

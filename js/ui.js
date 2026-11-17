@@ -119,96 +119,32 @@ export const PALETTE = {
   night: ['#4B5DBA', '#2C3780', '#D7DCF7', '#9FE8FF'],
   rainbow: ['url(#RB)', '#7E57C2', '#FFF4CC', '#FFFFFF'],
 };
-let otterSeq = 0;
-// look = { skin, pattern, hat, eyes, neck, back, hand } (emoji for accessories, keys for skin/pattern)
-// face: happy | ok | sad | love | sleep ; pose: sit | wave ; water → leafy branch
-export function otter({ face = 'happy', pose = 'sit', water = false, outfit = '', size = 160, bob = false, color, branch: showBranch = true, look = null } = {}) {
-  const id = 'ch' + (++otterSeq);
-  const skin = look?.skin && look.skin !== 'mood' && PALETTE[look.skin] ? look.skin : null;
-  const col = skin || color || { love: 'pink', sad: 'blue', ok: 'yellow' }[face] || 'green';
-  let [c, d, l, acc] = PALETTE[col] || PALETTE.green;
-  const ink = '#2B2420';
-  const rb = col === 'rainbow' ? `<linearGradient id="RB${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#FF7B9C"/><stop offset=".3" stop-color="#FFC857"/><stop offset=".55" stop-color="#6CC46A"/><stop offset=".8" stop-color="#6FA8DC"/><stop offset="1" stop-color="#B48CF0"/></linearGradient>` : '';
-  if (col === 'rainbow') c = `url(#RB${id})`;
-  const pattern = look?.pattern || 'spots';
-  const hat = look?.hat || (outfit && !['🕶️', '🧣'].includes(outfit) ? outfit : '');
-  const eyesItem = look?.eyes || (outfit === '🕶️' ? outfit : '');
-  const neck = look?.neck || (outfit === '🧣' ? outfit : '');
-  const back = look?.back || '', hand = look?.hand || '';
-
-  // body silhouette (used for fill and as clip for patterns)
-  const BODY = 'M56 128 C52 98 84 80 118 84 C140 87 152 104 148 122 C143 144 108 152 84 149 C68 147 58 140 56 128 Z';
-  const pat = {
-    spots: `<g fill="${d}" opacity=".45"><circle cx="84" cy="106" r="5"/><circle cx="104" cy="98" r="3.5"/><circle cx="122" cy="104" r="4.5"/><circle cx="96" cy="122" r="3"/><circle cx="72" cy="120" r="3.5"/><circle cx="132" cy="124" r="3"/></g>`,
-    stripes: `<g stroke="${d}" stroke-width="5" opacity=".42" stroke-linecap="round"><path d="M74 88 L70 150"/><path d="M92 82 L88 152"/><path d="M110 82 L106 152"/><path d="M128 86 L124 150"/></g>`,
-    stars: `<g fill="${acc}" opacity=".9"><path d="M86 104l2.4 5 5.4.6-4 3.7 1.1 5.3-4.9-2.7-4.9 2.7 1.1-5.3-4-3.7 5.4-.6z"/><path d="M118 98l1.8 3.8 4.1.4-3 2.8.8 4-3.7-2-3.7 2 .8-4-3-2.8 4.1-.4z"/><path d="M106 124l1.6 3.3 3.6.4-2.7 2.5.8 3.6-3.3-1.8-3.3 1.8.8-3.6-2.7-2.5 3.6-.4z"/></g>`,
-    hearts: `<g fill="${acc === '#FFFFFF' ? '#FF7B9C' : '#FF7B9C'}" opacity=".85"><path d="M88 112l-6-6a3.6 3.6 0 1 1 6-3.8a3.6 3.6 0 1 1 6 3.8z"/><path d="M120 106l-5-5a3 3 0 1 1 5-3.2a3 3 0 1 1 5 3.2z"/><path d="M104 132l-4.5-4.5a2.8 2.8 0 1 1 4.5-3a2.8 2.8 0 1 1 4.5 3z"/></g>`,
-    sparkles: `<g fill="#fff" opacity=".9"><circle cx="80" cy="110" r="2"/><circle cx="96" cy="96" r="1.6"/><circle cx="112" cy="116" r="2.2"/><circle cx="126" cy="100" r="1.5"/><circle cx="90" cy="130" r="1.8"/><path d="M104 102l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/></g>`,
-    none: '',
-  }[pattern] ?? '';
-
-  // turret eye
-  const ex = 160, ey = 90;
-  let eyeInner;
-  if (face === 'sleep') eyeInner = `<path d="M${ex - 9} ${ey + 1} q9 7 18 0" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  else if (face === 'love') eyeInner = `<circle cx="${ex}" cy="${ey}" r="9.5" fill="#fff"/><path d="M${ex} ${ey + 6}l-6-6a3.7 3.7 0 1 1 6-4a3.7 3.7 0 1 1 6 4z" fill="#E6566E"/>`;
-  else {
-    const pr = face === 'ok' ? 4.2 : 5;
-    eyeInner = `<circle cx="${ex}" cy="${ey}" r="9.5" fill="#fff"/><g class="pupil"><circle cx="${ex + 2.5}" cy="${ey + 0.5}" r="${pr}" fill="${ink}"/><circle cx="${ex + 4}" cy="${ey - 1.5}" r="1.6" fill="#fff"/></g>`;
-    if (face === 'sad') eyeInner += `<path d="M${ex - 13} ${ey - 4} L${ex + 13} ${ey - 9} L${ex + 13} ${ey - 15} L${ex - 13} ${ey - 15}z" fill="${c}"/><path d="M${ex - 12} ${ey - 4} L${ex + 12} ${ey - 9}" stroke="${d}" stroke-width="2.5" stroke-linecap="round"/>`;
-  }
-  const eye = `<g class="eyes"><circle cx="${ex}" cy="${ey}" r="16.5" fill="${c}" stroke="${d}" stroke-width="2.5"/>
-    <circle cx="${ex}" cy="${ey}" r="12.5" fill="none" stroke="${d}" stroke-width="1.6" opacity=".55" stroke-dasharray="2.5 3"/>${eyeInner}</g>`;
-  const mouth = face === 'sad'
-    ? `<path d="M186 112 C176 108 164 110 154 116" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M150 104q-3 7 0 9q4-2 0-9z" fill="#7EC8E3"/>`
-    : face === 'ok'
-      ? `<path d="M187 108 C178 113 166 114 154 112" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
-      : `<path d="M187 106 C180 118 164 121 152 112" stroke="${ink}" stroke-width="3" fill="${face === 'sleep' ? 'none' : '#E77B83'}" stroke-linecap="round"/>`;
-  const foot = (x, y) => `<g fill="${d}"><ellipse cx="${x - 5}" cy="${y}" rx="6" ry="4.5"/><ellipse cx="${x + 5}" cy="${y + 1}" rx="6" ry="4.5"/></g>`;
-  const frontLeg = pose === 'wave'
-    ? `<path d="M126 134 C138 136 148 134 158 128" stroke="${c}" stroke-width="10" fill="none" stroke-linecap="round"/><g fill="${d}"><ellipse cx="161" cy="122" rx="4" ry="6" transform="rotate(-10 161 122)"/><ellipse cx="166" cy="129" rx="4" ry="6" transform="rotate(60 166 129)"/></g>`
-    : `<path d="M126 136 C130 148 132 156 134 164" stroke="${c}" stroke-width="10" fill="none" stroke-linecap="round"/>${foot(134, 166)}`;
-  const backLeg = `<path d="M78 138 C74 150 72 156 72 164" stroke="${c}" stroke-width="11" fill="none" stroke-linecap="round"/>${foot(72, 166)}`;
-  const branch = water
-    ? `<path d="M-10 170 Q70 162 120 170 T214 166" stroke="#7A5233" stroke-width="11" fill="none" stroke-linecap="round"/><path d="M24 166q-14 -18 6 -26q8 14 -6 26z" fill="#4FA35A"/><path d="M176 164q18 -16 4 -28q-14 10 -4 28z" fill="#4FA35A"/>`
-    : `<path d="M14 170 Q100 162 192 170" stroke="#7A5233" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M180 168q14 -12 2 -22q-10 9 -2 22z" fill="#4FA35A"/>`;
-  const crest = Array.from({ length: 7 }, (_, i) => { const t = i / 6; const x = 66 + t * 64, y = 92 - Math.sin(t * Math.PI) * 10 + t * -2; return `<path d="M${x - 5} ${y + 4} L${x} ${y - 5} L${x + 5} ${y + 4}z"/>`; }).join('');
-  const em = (e, x, y, fs, rot = 0) => (e ? `<text x="${x}" y="${y}" font-size="${fs}" text-anchor="middle" dominant-baseline="central" transform="rotate(${rot} ${x} ${y})">${e}</text>` : '');
-
-  const tight = size <= 60; // small icons: crop the empty space around the chameleon
-  return `<svg class="otter mascot ${bob ? 'bob' : ''}" width="${size}" height="${tight ? Math.round(size * 0.82) : size}" viewBox="${tight ? '14 34 182 150' : '0 0 200 200'}" aria-hidden="true">
-    <defs>${rb}<clipPath id="B${id}"><path d="${BODY}"/></clipPath></defs>
-    ${showBranch && water ? branch : ''}
-    <path class="tail" d="M60 132 C34 134 22 152 30 166 C38 180 62 176 62 160 C62 148 46 146 44 156 C43 163 52 165 54 159" stroke="${c}" stroke-width="12" fill="none" stroke-linecap="round"/>
-    <path d="M60 132 C34 134 22 152 30 166 C38 180 62 176 62 160 C62 148 46 146 44 156" stroke="${d}" stroke-width="2" fill="none" stroke-dasharray="2 8" stroke-linecap="round" opacity=".7"/>
-    ${showBranch && !water ? branch : ''}
-    ${backLeg}
-    <g fill="${d}">${crest}</g>
-    <path d="${BODY}" fill="${c}"/>
-    <g clip-path="url(#B${id})"><path d="M50 132 C80 146 120 146 152 124 L152 160 L50 160z" fill="${l}" opacity=".8"/>${pat}
-      <path d="M62 116 C88 122 118 118 146 108" stroke="${l}" stroke-width="3" fill="none" opacity=".55" stroke-dasharray="1 7" stroke-linecap="round"/></g>
-    <path d="M140 92 C150 66 170 60 184 74 C194 84 194 104 186 112 C178 122 156 124 142 118 C134 112 134 100 140 92 Z" fill="${c}"/>
-    <path d="M140 92 C142 68 150 50 164 48 C162 58 158 70 156 80 Z" fill="${d}"/>
-    <path d="M144 88 C147 70 153 58 161 54" stroke="${c}" stroke-width="3" fill="none" opacity=".6" stroke-linecap="round"/>
-    <path d="M146 116 C160 124 178 118 186 110 C182 122 160 126 146 116z" fill="${l}" opacity=".85"/>
-    ${em(back, 100, 86, 30, -6)}
-    ${neck ? em(neck, 142, 122, 30, -10) : ''}
-    ${eye}
-    <circle cx="185" cy="94" r="1.6" fill="${d}"/>
-    <ellipse cx="170" cy="111" rx="6" ry="3.5" fill="#F49A9A" opacity="${face === 'love' ? 0.95 : 0.6}"/>
-    ${mouth}
-    ${frontLeg}
-    ${hand ? em(hand, pose === 'wave' ? 170 : 146, pose === 'wave' ? 132 : 150, 26, -8) : ''}
-    ${eyesItem ? em(eyesItem, ex + 2, ey + 1, 34, 0) : ''}
-    ${hat ? em(hat, 160, 50, 36, 10) : ''}
-    ${face === 'sleep' ? '<text x="182" y="54" font-size="16" fill="#9BB">z</text><text x="192" y="40" font-size="12" fill="#9BB">z</text>' : ''}
-  </svg>`;
+/* Хамі — sticker sprites (img/hami/*.webp). Colour = CSS hue shift of the green original. */
+export const HAMI_POSES = ['great', 'normal', 'sad', 'joy', 'wow', 'angry', 'guide', 'chef', 'whisper', 'sleep', 'thinking', 'tired', 'hello', 'cool', 'think', 'heart', 'hide', 'sit'];
+// top of the cap, % of the sprite (for a hat worn on top)
+export const HAMI_TOP = { angry: [54.8, 1.8], chef: [42, 1.8], cool: [52.8, 2.2], great: [52.7, 1.8], guide: [52, 1.9], heart: [41.8, 1.8], hello: [53, 1.9], hide: [45.5, 1.9], joy: [45.1, 6.7], normal: [52.7, 1.8], sad: [62.9, 27], sit: [50.8, 1.9], sleep: [55.7, 34], think: [51.4, 1.9], thinking: [45, 9], tired: [45.4, 2.1], whisper: [49, 3.7], wow: [44.6, 1.9] };
+const HUE = {
+  green: '', emerald: 'hue-rotate(25deg) saturate(1.1)', mint: 'hue-rotate(45deg)', turquoise: 'hue-rotate(75deg)', blue: 'hue-rotate(110deg)',
+  night: 'hue-rotate(125deg) brightness(.8) saturate(1.2)', violet: 'hue-rotate(160deg)', pink: 'hue-rotate(215deg) saturate(.9)', coral: 'hue-rotate(250deg) saturate(1.1)',
+  golden: 'hue-rotate(-45deg) saturate(1.3) brightness(1.05)', yellow: 'hue-rotate(-40deg) saturate(1.2)', grey: 'saturate(.15) brightness(1.05)', rainbow: '',
+};
+export const hamiFilter = (color) => HUE[color] || '';
+export function hami(pose = 'cool', { size = 120, color = 'green', bob = false, cls = '', hat = '', near = '' } = {}) {
+  if (!HAMI_POSES.includes(pose)) pose = 'cool';
+  const f = hamiFilter(color);
+  const [hx, hy] = HAMI_TOP[pose] || [50, 2];
+  return `<span class="otter hami ${bob ? 'bob' : ''} ${color === 'rainbow' ? 'rainbow' : ''} ${cls}" style="--s:${size}px"><img src="/img/hami/${pose}.webp" alt="" width="${size}" height="${size}" draggable="false"${f ? ` style="filter:${f}"` : ''}>${hat ? `<span class="hami-hat" style="left:${hx}%;top:${hy}%">${hat}</span>` : ''}${near ? `<span class="hami-near">${near}</span>` : ''}</span>`;
+}
+// Backward-compatible helper: face/pose → sticker.
+export function otter({ face = 'happy', pose = '', size = 160, bob = false, color } = {}) {
+  const p = HAMI_POSES.includes(pose) ? pose : pose === 'wave' ? 'hello' : { happy: 'cool', ok: 'normal', sad: 'sad', love: 'heart', sleep: 'sleep', wow: 'wow' }[face] || 'cool';
+  return hami(p, { size, bob, color: color || 'green' });
 }
 export const mascot = otter;
 
 export function emptyState(text, sub = '', btn = '') {
   return `<div class="empty">
-    <div class="empty-art">${otter({ pose: 'wave', water: true, size: 120 })}<span class="e-heart">❤</span><span class="e-star">✦</span></div>
+    <div class="empty-art">${hami('hello', { size: 120 })}<span class="e-heart">❤</span><span class="e-star">✦</span></div>
     <div class="empty-t">${esc(text)}</div>
     ${sub ? `<div class="empty-s">${esc(sub)}</div>` : ''}
     ${btn}
@@ -257,15 +193,14 @@ export function mapScene() {
       <g class="pin p4"><path d="M186 118c0-8 6-13 12-13s12 5 12 13c0 9-12 19-12 19s-12-10-12-19z" fill="#9B7FE6"/><circle cx="198" cy="117" r="4.5" fill="#fff"/></g>
       <g class="lens"><circle cx="0" cy="0" r="22" fill="rgba(255,255,255,.35)" stroke="#5B4636" stroke-width="5"/><path d="M15 15 L32 32" stroke="#5B4636" stroke-width="8" stroke-linecap="round"/></g>
     </svg>
-    <div class="map-buddy">${otter({ face: 'happy', size: 96, color: 'green' })}</div>
+    <div class="map-buddy">${hami('guide', { size: 104 })}</div>
   </div>`;
 }
 
 /* ---------------- chef chameleon cooking (recipe loading scene) ---------------- */
 export function cookScene() {
-  const hat = `<svg class="chef-hat" viewBox="0 0 80 64" aria-hidden="true"><path d="M14 40 C2 38 2 18 16 18 C16 4 34 0 40 10 C46 0 64 4 64 18 C78 18 78 38 66 40 Z" fill="#fff"/><rect x="16" y="38" width="48" height="16" rx="4" fill="#F1F1F1"/><path d="M28 40 v12 M40 40 v12 M52 40 v12" stroke="#DDD" stroke-width="2"/></svg>`;
   return `<div class="cook-scene" aria-hidden="true">
-    <div class="cook-buddy">${hat}${otter({ face: 'happy', size: 110, color: 'green' })}</div>
+    <div class="cook-buddy">${hami('chef', { size: 118 })}</div>
     <div class="cook-pot">
       <div class="steam"><i></i><i></i><i></i></div>
       <div class="drops"><span>🍅</span><span>🥕</span><span>🧅</span><span>🧀</span><span>🌿</span></div>
@@ -285,10 +220,8 @@ export function cookScene() {
 }
 
 /* ---------------- «Нишпорка» — the shopping-detective chameleon of the wishlist ---------------- */
-const CAP = `<svg class="ny-cap" viewBox="0 0 90 46" aria-hidden="true"><path d="M8 34 C8 12 30 4 46 4 C66 4 84 14 84 32 Z" fill="#5B3F8C"/><path d="M4 34 h80 a3 3 0 0 1 0 7 H4 a3 3 0 0 1 0-7z" fill="#46306E"/><path d="M14 30 C20 16 36 10 50 10" stroke="#fff" stroke-opacity=".18" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="46" cy="5" r="4" fill="#F2C14E"/></svg>`;
-const GLASS = `<svg class="ny-glass" viewBox="0 0 60 60" aria-hidden="true"><circle cx="24" cy="24" r="16" fill="#DFF3FF" fill-opacity=".55" stroke="#8E6B4E" stroke-width="5"/><path d="M14 18 a12 12 0 0 1 10-6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M36 36 L52 52" stroke="#8E6B4E" stroke-width="8" stroke-linecap="round"/></svg>`;
 export function nyshporka(size = 90, face = 'happy') {
-  return `<span class="ny" style="--s:${size}px">${CAP}${otter({ face, size, color: 'violet' })}${GLASS}</span>`;
+  return `<span class="ny" style="--s:${size}px">${hami(face === 'sad' ? 'sad' : face === 'love' ? 'joy' : 'guide', { size, color: 'violet' })}</span>`;
 }
 export function scanScene() {
   return `<div class="scan-scene" aria-hidden="true">
@@ -307,5 +240,5 @@ export function scanScene() {
 
 /* ---------------- «Шептунчик» — the whispering helper ---------------- */
 export function whisperer(size = 64, face = 'happy') {
-  return `<span class="wh-av" style="--s:${size}px">${otter({ face, size, color: 'mint', branch: size > 50 })}<span class="wh-ps">ш-ш</span></span>`;
+  return `<span class="wh-av" style="--s:${size}px">${hami(face === 'sad' ? 'sad' : 'whisper', { size, color: 'mint' })}</span>`;
 }
