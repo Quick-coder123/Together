@@ -689,3 +689,20 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .li.menu > .ico { color: var(--muted); }
 .menu-ic { width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; color: #fff; }
 .li.menu:active { background: var(--card2); transform: none; }
+/* Гід-хамелеон: map loading scene */
+.guide-ic { background: linear-gradient(135deg, #6CC46A, #2F9D7A); font-size: 24px; }
+.map-scene { position: relative; width: min(300px, 86vw); margin: 10px auto 6px; }
+.map-paper { width: 100%; height: auto; display: block; filter: drop-shadow(0 10px 18px rgba(0,0,0,.35)); animation: unfold .7s cubic-bezier(.2,1.2,.4,1) both; transform-origin: center; }
+@keyframes unfold { from { transform: scaleX(.2) rotate(-4deg); opacity: 0; } }
+.map-scene .route { animation: march 1s linear infinite; }
+@keyframes march { to { stroke-dashoffset: -28; } }
+.map-scene .pin { transform-box: fill-box; transform-origin: 50% 100%; animation: pinDrop 3.2s ease-in-out infinite; opacity: 0; }
+.map-scene .p1 { animation-delay: .6s; } .map-scene .p2 { animation-delay: 1.2s; } .map-scene .p3 { animation-delay: 1.8s; } .map-scene .p4 { animation-delay: 2.4s; }
+@keyframes pinDrop { 0% { opacity: 0; transform: translateY(-14px) scale(.6); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.map-scene .lens { animation: lens 4.5s ease-in-out infinite; }
+@keyframes lens { 0% { transform: translate(70px, 80px); } 25% { transform: translate(150px, 60px); } 50% { transform: translate(235px, 40px); } 75% { transform: translate(195px, 120px); } 100% { transform: translate(70px, 80px); } }
+.map-buddy { position: absolute; left: -14px; bottom: -26px; animation: peek 2.4s ease-in-out infinite; }
+.map-buddy svg { width: clamp(70px, 24vw, 96px); height: auto; }
+@keyframes peek { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
+.load-line { display: block; margin-top: 30px; min-height: 22px; }
+.load-line.swap { animation: fadeUp .35s both; }

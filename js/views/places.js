@@ -1,6 +1,7 @@
 // «Місця» — places and dates.
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, LS } from '../store.js';
-import { esc, icon, emptyState, fmtDate, otter } from '../ui.js';
+import { esc, icon, emptyState, fmtDate, otter, mapScene } from '../ui.js';
+import { geocodeCity, reverse, nearbyPlaces } from '../osm.js';
 
 export const CATS = {
   cafe: ['☕', 'Кафе'], restaurant: ['🍽️', 'Ресторан'], bar: ['🍷', 'Бар'], park: ['🌳', 'Парк'], museum: ['🖼️', 'Виставка / музей'],
@@ -30,8 +31,8 @@ export function placesView() {
   </div>
   ${blind.map(blindCard).join('')}
   <button class="card ai-where" data-a="whereGo">
-    <span class="ic-box" style="background:linear-gradient(135deg,#34C38F,#2F80ED);color:#fff">${icon('sparkle')}</span>
-    <span class="grow"><b>Куди піти?</b><br><span class="muted small">ШІ підбере цікаві місця біля тебе або в обраному місті</span></span>${icon('chev', 18)}
+    <span class="ic-box guide-ic">🦎</span>
+    <span class="grow"><b>Куди піти?</b><br><span class="muted small">Гід-хамелеон Хамі знайде цікаві місця біля тебе або в обраному місті</span></span>${icon('chev', 18)}
   </button>
   <div class="seg big">
     <button class="seg-b ${mode === 'spont' ? 'on' : ''}" data-a="placeMode" data-v="spont">${icon('bolt', 18)} Спонтанне</button>
@@ -161,12 +162,13 @@ on('revealBlind', (el) => { if (confirm('Розкрити план партне�
 const WHERE_KINDS = [['any', '🎲 Будь-що'], ['coffee', '☕ Кава й десерти'], ['food', '🍽️ Поїсти'], ['walk', '🌳 Прогулянка'], ['culture', '🎭 Культура'], ['active', '🛼 Активно'], ['evening', '🌙 Вечір']];
 const km = (m) => (m < 1000 ? `${Math.round(m / 10) * 10} м` : `${(m / 1000).toFixed(1).replace('.', ',')} км`);
 
-function whereForm(sh) {
+function whereForm(sh, note = '') {
   const k = ui('whereKind', 'any');
   const city = LS.get('lastCity', '');
   sh.innerHTML = `<div class="grab"></div>
-    <div class="sheet-h"><h3>✨ Куди піти?</h3></div>
-    <p class="muted small" style="margin-top:-6px">ШІ знайде справжні місця поруч і підкаже, що там зробити удвох.</p>
+    <div class="sheet-h"><h3>🦎 Гід-хамелеон</h3></div>
+    <p class="muted small" style="margin-top:-6px">Хамі розгорне мапу, знайде справжні місця поруч і підкаже, що там зробити удвох.</p>
+    ${note ? `<div class="info-bar small">📍 ${esc(note)}</div>` : ''}
     <div class="sec-label">ЩО ХОЧЕТЬСЯ</div>
     <div class="pills wrap-pills">${WHERE_KINDS.map(([v, l]) => `<button class="pill ${k === v ? 'on' : ''}" data-k="${v}">${l}</button>`).join('')}</div>
     <div class="sec-label">ДЕ ШУКАЄМО</div>
@@ -175,13 +177,23 @@ function whereForm(sh) {
     <form class="add-line" data-city-form>${icon('search', 20)}<input id="where-city" placeholder="Київ, Львів, Одеса…" value="${esc(city)}" maxlength="80" autocomplete="off" enterkeyhint="search"><button class="send sm" type="submit" aria-label="Шукати">${icon('chev', 18)}</button></form>`;
   sh.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => { S.ui.whereKind = b.dataset.k; sh.querySelectorAll('[data-k]').forEach((x) => x.classList.toggle('on', x === b)); });
   sh.querySelector('[data-geo]').onclick = () => {
-    if (!navigator.geolocation) { toast('Телефон не дає геолокацію. Вкажи місто.'); return; }
-    whereLoading(sh, 'Визначаємо, де ви…');
+    if (!navigator.geolocation) { toast('Цей браузер не дає геолокацію. Вкажи місто.'); return; }
+    whereLoading(sh, ['Хамі визначає, де ви…']);
+    let done = false;
+    const fail = (err) => {
+      if (done) return; done = true;
+      const ios = /iPhone|iPad/.test(navigator.userAgent);
+      const msg = err?.code === 1
+        ? (ios ? 'Доступ до геолокації вимкнено. Увімкни: Параметри → Приватність → Служби локації → Safari (або цей застосунок) → «Під час використання». Або просто вкажи місто.' : 'Доступ до геолокації заборонено. Дозволь його в налаштуваннях браузера або вкажи місто.')
+        : 'Не вдалося визначити, де ви. Спробуй ще раз або вкажи місто.';
+      whereForm(sh, msg);
+    };
     navigator.geolocation.getCurrentPosition(
-      (pos) => whereSearch(sh, { lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => { toast('Немає доступу до геолокації. Вкажи місто вручну.'); whereForm(sh); },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 },
+      (pos) => { if (done) return; done = true; whereSearch(sh, { lat: pos.coords.latitude, lon: pos.coords.longitude }); },
+      fail,
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 },
     );
+    setTimeout(() => fail({ code: 3 }), 20000);
   };
   sh.querySelector('[data-city-form]').onsubmit = (e) => {
     e.preventDefault();
@@ -191,20 +203,45 @@ function whereForm(sh) {
     whereSearch(sh, { city: c });
   };
 }
-function whereLoading(sh, text) {
-  sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'happy', size: 110, bob: true })}<div class="spin"></div><b>${esc(text)}</b><p class="muted small">Зазвичай 5–20 секунд</p></div>`;
+let loadTimer;
+function whereLoading(sh, lines) {
+  clearInterval(loadTimer);
+  sh.innerHTML = `<div class="grab"></div><div class="center">${mapScene()}<b class="load-line">${esc(lines[0])}</b><p class="muted small">Зазвичай 5–20 секунд</p></div>`;
+  let i = 0;
+  loadTimer = setInterval(() => {
+    const el = sh.querySelector('.load-line');
+    if (!el) { clearInterval(loadTimer); return; }
+    i = (i + 1) % lines.length;
+    el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
+    el.textContent = lines[i];
+  }, 2200);
 }
+const SEARCH_LINES = ['Хамі розгортає мапу…', 'Шукає затишні місця поруч…', 'Принюхується до найсмачнішої кави…', 'Ставить сердечка на мапі…', 'Вибирає найкраще для вас двох…'];
 async function whereSearch(sh, where) {
-  whereLoading(sh, 'Шукаємо цікаві місця…');
+  whereLoading(sh, SEARCH_LINES);
   try {
-    const res = await fetch('/api/places', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('whereKind', 'any'), ...where }) });
+    let point = where;
+    let label = '';
+    if (where.city) {
+      const g = await geocodeCity(where.city);
+      if (!g) throw new Error(`Хамі не знайшов «${where.city}» на мапі. Спробуй написати інакше.`);
+      point = g; label = g.label;
+    } else {
+      label = await reverse(where.lat, where.lon);
+    }
+    const cands = await nearbyPlaces({ lat: point.lat, lon: point.lon, radius: point.radius || 2500, kind: ui('whereKind', 'any'), exclude: S.room.places.map((p) => p.name) });
+    if (!cands.length) throw new Error('Поруч не знайшли підходящих місць. Спробуй інший тип або місто.');
+    const res = await fetch('/api/places', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('whereKind', 'any'), where: label, cands }) });
     const data = await res.json().catch(() => ({}));
     if (!sh.isConnected) return;
     if (!res.ok) throw new Error(data.error === 'not_configured' ? 'Сервер ще не підключено до бази даних.' : data.error || 'Не вдалося знайти місця.');
+    clearInterval(loadTimer);
     whereResults(sh, data, where);
   } catch (e) {
+    clearInterval(loadTimer);
     if (!sh.isConnected) return;
-    sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(e.message === 'Failed to fetch' ? 'Немає звʼязку. Перевір інтернет.' : e.message)}</p></div>
+    const msg = /Failed to fetch|NetworkError|Load failed/i.test(e.message) ? 'Немає звʼязку. Перевір інтернет.' : e.message;
+    sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div>
       <button class="btn block" data-retry>Спробувати ще</button><button class="btn secondary block" data-back>Змінити місце</button>`;
     sh.querySelector('[data-retry]').onclick = () => whereSearch(sh, where);
     sh.querySelector('[data-back]').onclick = () => whereForm(sh);
@@ -213,7 +250,7 @@ async function whereSearch(sh, where) {
 function whereResults(sh, data, where) {
   sh.innerHTML = `<div class="grab"></div>
     <div class="sheet-h"><h3>${data.where ? `📍 ${esc(data.where)}` : '📍 Поруч'}</h3><button class="btn sm secondary" data-back>Змінити</button></div>
-    ${data.ai ? '' : '<p class="muted small">Підказки прості: ШІ зараз недоступний.</p>'}
+    <p class="muted small" style="margin-top:-4px">${data.ai ? '🦎 Хамі вибрав для вас:' : '🦎 Хамі знайшов поруч:'}</p>
     <div class="where-list">${data.places.map((p, i) => {
       const [em, cat] = CATS[p.cat] || CATS.other;
       return `<div class="where-i" style="--i:${i}">

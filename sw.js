@@ -1,7 +1,7 @@
-const CACHE = 'hamelyky-v8';
+const CACHE = 'hamelyky-v9';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/manifest.webmanifest',
-  '/js/app.js', '/js/games.js', '/js/store.js', '/js/ui.js', '/js/derive.js',
+  '/js/app.js', '/js/games.js', '/js/osm.js', '/js/store.js', '/js/ui.js', '/js/derive.js',
   '/js/views/me.js', '/js/views/places.js', '/js/views/home.js', '/js/views/wish.js', '/js/views/more.js',
   '/lib/core.js', '/icons/icon.svg', '/icons/icon-192.png', '/icons/apple-touch-icon.png',
 ];

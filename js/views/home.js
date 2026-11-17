@@ -136,7 +136,7 @@ function aiPreview(sh, r, note) {
   sh.innerHTML = `<div class="grab"></div>
     ${/^https:\/\//.test(r.image || '') ? `<img class="rec-img" src="${esc(r.image)}" alt="" loading="lazy">` : ''}
     ${note ? `<div class="info-bar small">🌐 ${note === 'no_translation' ? 'Рецепт англійською. Щоб він був українською, додай безкоштовний ключ Gemini (див. README).' : 'Переклад зараз недоступний, показую оригінал.'}</div>` : ''}
-    <div class="muted small">✨ Знайшли для вас</div>
+    <div class="muted small">🦎 Хамі знайшов для вас</div>
     <h3 class="h2" style="margin:4px 0 6px">${esc(r.title)}</h3>
     ${r.description ? `<p class="muted" style="margin:0 0 8px">${esc(r.description)}</p>` : ''}
     <div class="row gap wrap">${r.time ? `<span class="chip">⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span class="chip">🍽 ${esc(r.servings)}</span>` : ''}</div>
@@ -157,7 +157,7 @@ function aiPreview(sh, r, note) {
 }
 async function aiSearch(sh) {
   sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'happy', size: 110, bob: true })}
-    <div class="spin"></div><b>Шукаємо рецепт в інтернеті…</b><p class="muted small">Кілька секунд</p></div>`;
+    <div class="spin"></div><b>Гід-хамелеон шукає рецепт…</b><p class="muted small">Кілька секунд</p></div>`;
   try {
     const res = await fetch('/api/recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('aiKind', 'any') }) });
     const data = await res.json().catch(() => ({}));

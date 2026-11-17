@@ -183,3 +183,25 @@ export async function resizeImage(file, max = 160) {
     return c.toDataURL('image/jpeg', 0.82);
   } finally { URL.revokeObjectURL(url); }
 }
+
+/* ---------------- chameleon studying a map (loading scene) ---------------- */
+export function mapScene() {
+  return `<div class="map-scene" aria-hidden="true">
+    <svg class="map-paper" viewBox="0 0 300 190">
+      <path d="M10 22 L100 10 L200 22 L290 10 L290 170 L200 182 L100 170 L10 182 Z" fill="#F3E6C8"/>
+      <path d="M100 10 L100 170 M200 22 L200 182" stroke="#D9C79F" stroke-width="2"/>
+      <path d="M10 22 L100 10 L100 170 L10 182 Z" fill="#EBDDBB" opacity=".7"/>
+      <path d="M200 22 L290 10 L290 170 L200 182 Z" fill="#EBDDBB" opacity=".5"/>
+      <path d="M18 120 C70 100 90 150 150 130 S240 90 286 110" stroke="#8CC4E8" stroke-width="12" fill="none" stroke-linecap="round" opacity=".9"/>
+      <ellipse cx="62" cy="62" rx="30" ry="20" fill="#A8D5A0"/><ellipse cx="236" cy="150" rx="26" ry="16" fill="#A8D5A0"/>
+      <path d="M20 85 H280 M150 18 V178 M40 160 L120 40 M190 60 L285 70" stroke="#FFFFFF" stroke-width="5" opacity=".85"/>
+      <path class="route" d="M40 150 C70 120 110 160 150 100 S220 70 250 50" stroke="#E6566E" stroke-width="3.5" fill="none" stroke-dasharray="7 7" stroke-linecap="round"/>
+      <g class="pin p1"><path d="M70 74c0-8 6-13 12-13s12 5 12 13c0 9-12 19-12 19S70 83 70 74z" fill="#E6566E"/><circle cx="82" cy="73" r="4.5" fill="#fff"/></g>
+      <g class="pin p2"><path d="M140 62c0-8 6-13 12-13s12 5 12 13c0 9-12 19-12 19s-12-10-12-19z" fill="#F2B544"/><circle cx="152" cy="61" r="4.5" fill="#fff"/></g>
+      <g class="pin p3"><path d="M226 30c0-8 6-13 12-13s12 5 12 13c0 9-12 19-12 19s-12-10-12-19z" fill="#5FB98A"/><circle cx="238" cy="29" r="4.5" fill="#fff"/></g>
+      <g class="pin p4"><path d="M186 118c0-8 6-13 12-13s12 5 12 13c0 9-12 19-12 19s-12-10-12-19z" fill="#9B7FE6"/><circle cx="198" cy="117" r="4.5" fill="#fff"/></g>
+      <g class="lens"><circle cx="0" cy="0" r="22" fill="rgba(255,255,255,.35)" stroke="#5B4636" stroke-width="5"/><path d="M15 15 L32 32" stroke="#5B4636" stroke-width="8" stroke-linecap="round"/></g>
+    </svg>
+    <div class="map-buddy">${otter({ face: 'happy', size: 96, color: 'green' })}</div>
+  </div>`;
+}
