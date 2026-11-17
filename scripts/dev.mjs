@@ -2,14 +2,17 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
-import * as handler from '../api/state.js';
+import * as stateApi from '../api/state.js';
+import * as recipeApi from '../api/recipe.js';
+const apis = { '/api/state': stateApi, '/api/recipe': recipeApi };
 
 const root = new URL('..', import.meta.url).pathname;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  if (url.pathname === '/api/state') {
+  if (apis[url.pathname]) {
+    const handler = apis[url.pathname];
     const chunks = [];
     for await (const c of req) chunks.push(c);
     const request = new Request(url, { method: req.method, headers: req.headers, body: req.method === 'POST' ? Buffer.concat(chunks) : undefined });

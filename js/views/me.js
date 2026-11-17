@@ -1,7 +1,8 @@
 // «Ми» — the main screen.
 import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, LS } from '../store.js';
 import { esc, icon, otter, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
-import { levelInfo, streakOf, tasksFor, TASKS, OUTFITS, MOODS, checkinWeek, dayDiff, addDays } from '/lib/core.js';
+import { levelInfo, streakOf, tasksFor, TASKS, OUTFITS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY } from '/lib/core.js';
+import { GAMES, pickGame } from '../games.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
 
 const MOOD_FACE = { great: 'love', ok: 'ok', sad: 'sad' };
@@ -77,6 +78,7 @@ function petCard(r, t) {
   const tasks = tasksFor(t);
   const claimed = r.daily?.[t]?.[S.me.id]?.claimed || {};
   const doneN = tasks.filter((k) => claimed[k]).length;
+  const found = FINDS.filter((f) => pet.collection?.[f.id]).length;
   return `<section class="card pet">
     <div class="row">
       <h3 class="h3">Твій улюбленець</h3>
@@ -86,11 +88,12 @@ function petCard(r, t) {
       <button class="icon-btn sm" data-a="petHelp" aria-label="Як це працює">${icon('help', 20)}</button>
     </div>
     <div class="muted small">${esc(pet.name)} · ${lv.stage} · рівень ${lv.level}</div>
-    <div class="pet-scene" id="stage" data-a="tap">
+    <div class="pet-scene" id="stage" data-a="play">
       ${fed ? `<span class="chip ok">${icon('check', 14)} Нагодований</span>` : `<button class="chip warn" data-a="feed">🐟 Нагодувати</button>`}
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
+      <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🐚<span class="wd-n">${found}</span></button>
       <div class="pet-otter">${otter({ face, outfit, size: 150, bob: true })}</div>
-      <span class="tap-pill">${icon('hand', 16)} ТАП ТАП</span>
+      <span class="tap-pill">🎮 ГРАТИ</span>
     </div>
     <div class="pet-foot">
       <div class="grow"><div class="row small"><span>Досвід</span><span class="grow"></span><b>${lv.cur} / ${lv.need}</b></div><div class="bar-track"><div class="bar-fill" style="width:${(lv.cur / lv.need) * 100}%"></div></div></div>
@@ -176,15 +179,68 @@ on('feed', async (el, e) => {
   if (await act({ type: 'feed' })) { floaty('🐟'); setTimeout(() => floaty('💕'), 300); toast('Ням! +10 досвіду'); }
 });
 
-let taps = 0, tapTimer;
-on('tap', () => {
-  taps++;
-  floaty(['💕', '✨', '❤️', '💗'][Math.floor(Math.random() * 4)], 1);
-  const o = document.querySelector('.pet-otter');
-  if (o) { o.classList.remove('squish'); void o.offsetWidth; o.classList.add('squish'); }
-  clearTimeout(tapTimer);
-  tapTimer = setTimeout(() => { const n = taps; taps = 0; act({ type: 'tap', n }, { silent: true }); }, 700);
-});
+/* ----- games ----- */
+function gameSheet(game) {
+  const recent = LS.get('recentGames', []);
+  const g = game || pickGame(recent);
+  LS.set('recentGames', [g.id, ...recent.filter((x) => x !== g.id)].slice(0, 3));
+  openSheet(`<div class="sheet-h"><h3>${g.icon} ${g.title}</h3><button class="btn sm secondary" data-other>${icon('dice', 16)} Інша гра</button></div><div class="g-box"></div>`, (sh) => {
+    sh.querySelector('[data-other]').onclick = () => gameSheet();
+    const box = sh.querySelector('.g-box');
+    let finished = false;
+    g.run(box, async (win) => {
+      if (finished || !box.isConnected) return;
+      finished = true;
+      sh.querySelector('[data-other]').remove();
+      box.innerHTML = `<div class="center pad">${otter({ face: win ? 'love' : 'sad', size: 90 })}<div class="muted">Зачекай…</div></div>`;
+      const ok = await act({ type: 'game', game: g.id, win }, { silent: true });
+      if (!box.isConnected) return;
+      const lf = S.room.pet.lastFind;
+      const f = win && ok && lf?.id ? FINDS.find((x) => x.id === lf.id) : null;
+      const count = f ? S.room.pet.collection[f.id] : 0;
+      box.innerHTML = f ? `<div class="g-reward r-${f.r}">
+          <div class="muted small">Видра пірнула й знайшла…</div>
+          <div class="g-find">${f.e}</div><h3 class="h3">${f.name}</h3>
+          <div class="rar r-${f.r}">${RARITY[f.r]}${count === 1 ? ' · новинка в колекції!' : ` · уже ×${count}`}</div>
+          <div class="small muted mt">${lf.xp ? `+${lf.xp} досвіду улюбленцю` : 'Досвід за ігри на сьогодні вже зібрано, але знахідки є завжди 😉'}</div></div>
+          <div class="grid2 mt"><button class="btn" data-again>🎮 Ще гра</button><button class="btn secondary" data-coll>🐚 Колекція</button></div>`
+        : `<div class="g-reward"><div class="g-find">${otter({ face: 'sad', size: 110 })}</div><h3 class="h3">${win ? 'Перемога!' : 'Майже вийшло!'}</h3>
+          <p class="muted">${win ? 'Не вдалося звʼязатися із сервером — знахідку не збережено.' : 'Видра вірить у тебе. Спробуєш ще?'}</p></div>
+          <div class="grid2 mt"><button class="btn" data-retry>Ще раз</button><button class="btn secondary" data-again>${icon('dice', 16)} Інша гра</button></div>`;
+      box.querySelector('[data-again]')?.addEventListener('click', () => gameSheet());
+      box.querySelector('[data-retry]')?.addEventListener('click', () => gameSheet(g));
+      box.querySelector('[data-coll]')?.addEventListener('click', collectionSheet);
+      if (f && (f.r === 'epic' || f.r === 'legendary')) confetti(box);
+    });
+  });
+}
+function confetti(box) {
+  for (let i = 0; i < 24; i++) {
+    const c = document.createElement('span');
+    c.className = 'confetti';
+    c.textContent = ['✨', '💖', '⭐', '🎉'][i % 4];
+    c.style.left = Math.random() * 100 + '%';
+    c.style.animationDelay = Math.random() * 0.4 + 's';
+    box.appendChild(c);
+    setTimeout(() => c.remove(), 2200);
+  }
+}
+on('play', () => gameSheet());
+
+function collectionSheet() {
+  const col = S.room.pet.collection || {};
+  const n = FINDS.filter((f) => col[f.id]).length;
+  const lf = S.room.pet.lastFind;
+  const last = lf?.id ? FINDS.find((f) => f.id === lf.id) : null;
+  openSheet(`<div class="sheet-h"><h3>Колекція видри</h3><span class="chip">${n} / ${FINDS.length}</span></div>
+    <p class="muted small">Перемагайте в іграх — видра пірнає й приносить знахідки. Колекція спільна на двох.${last ? ` Остання: ${last.e} ${last.name} (${esc(nameOf(lf.by))}).` : ''}</p>
+    <div class="coll">${FINDS.map((f) => col[f.id]
+      ? `<div class="coll-i r-${f.r}"><span class="coll-e">${f.e}</span><b>${f.name}</b><span class="rar r-${f.r}">${RARITY[f.r]}</span>${col[f.id] > 1 ? `<span class="coll-n">×${col[f.id]}</span>` : ''}</div>`
+      : `<div class="coll-i empty-i"><span class="coll-e">❔</span><b>???</b><span class="rar r-${f.r}">${RARITY[f.r]}</span></div>`).join('')}</div>
+    <button class="btn block mt" data-play>🎮 Грати</button>`, (sh) => { sh.querySelector('[data-play]').onclick = () => gameSheet(); });
+}
+on('collection', (el, e) => { e.stopPropagation(); collectionSheet(); });
+void GAMES;
 
 function floaty(emoji, count = 3) {
   const stage = document.getElementById('stage');
@@ -208,7 +264,8 @@ on('petName', () => openForm({
 on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за улюбленцем</h3>
   <div class="prose">
   <p>🐟 <b>Годуйте щодня.</b> Один з вас годує улюбленця раз на день — так росте вогник 🔥 (дні поспіль).</p>
-  <p>👆 <b>Тапайте.</b> Кожен тап — крапля досвіду (до 30 за день кожному).</p>
+  <p>🎮 <b>Грайте.</b> Торкніться видри — щоразу випадає інша міні-гра: лови рибку, перлина під мушлею, памʼять, бульбашки, «повтори за видрою», правда чи міф, камінь-ножиці-папір.</p>
+  <p>🐚 <b>Збирайте знахідки.</b> За кожну перемогу видра приносить щось зі дна: від мушлі до легендарної скрині. Колекція спільна на двох.</p>
   <p>✅ <b>Завдання дня.</b> Щодня три завдання, кожне дає +10 досвіду.</p>
   <p>👕 <b>Гардероб.</b> З новими рівнями відкривається вбрання.</p>
   <p>🌱 Малюк → Підліток (рівень 3) → Дорослий (6) → Мудрий (10).</p></div>

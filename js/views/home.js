@@ -1,5 +1,6 @@
 // «Дім» — shopping, chores, recipes.
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, partnerId } from '../store.js';
+import { otter } from '../ui.js';
 import { esc, icon, emptyState, fmtDate } from '../ui.js';
 import { dayDiff } from '/lib/core.js';
 
@@ -55,11 +56,21 @@ function choresView() {
     <button class="grow left" data-a="choreForm" data-id="${c.id}"><span class="txt">${esc(c.text)}</span><br><span class="muted small">${c.repeat !== 'none' ? icon('repeat', 12) + ' ' + REPEAT[c.repeat] : 'Один раз'}${c.who ? ' · ' + esc(nameOf(c.who)) : ''}${st.label ? ' · ' + st.label : ''}</span></button></div>`).join('')}</section>`;
 }
 
+const AI_KINDS = [['any', '🎲 Будь-що'], ['dinner', '🕯️ Вечеря на двох'], ['breakfast', '🥞 Сніданок'], ['dessert', '🍰 Десерт'], ['quick', '⚡ До 30 хв'], ['ukrainian', '🇺🇦 Українська'], ['healthy', '🥗 Легке']];
+function aiCard() {
+  const k = ui('aiKind', 'any');
+  return `<section class="card ai-card">
+    <div class="row"><span class="ic-box" style="background:linear-gradient(135deg,#8B5CF6,#E14FD3);color:#fff">${icon('wand')}</span>
+      <div class="grow"><b class="lg">ШІ-рецепт</b><br><span class="muted small">Знайде в інтернеті цікавий рецепт і додасть з інгредієнтами</span></div></div>
+    <div class="pills mt">${AI_KINDS.map(([v, l]) => `<button class="pill ${k === v ? 'on' : ''}" data-a="aiKind" data-v="${v}">${l}</button>`).join('')}</div>
+    <button class="btn ai-btn block" data-a="aiRecipe">${icon('sparkle', 18)} Знайти випадковий рецепт</button>
+  </section>`;
+}
 function recipesView() {
   const list = S.room.recipes;
-  if (!list.length) return emptyState('Рецептів поки немає.', 'Зберігайте улюблені страви — і додавайте інгредієнти в покупки одним дотиком.', `<button class="btn" data-a="recipeForm">${icon('plus', 18)} Додати рецепт</button>`);
-  return `<div class="cards">${list.map((r) => `<button class="card place" data-a="recipe" data-id="${r.id}"><span class="place-em">🍲</span>
-    <span class="grow"><b>${esc(r.title)}</b><br><span class="muted small">${r.ingredients.length} інгредієнт(ів)${r.ingredients.length ? ' · ' + esc(r.ingredients.slice(0, 3).join(', ')) : ''}</span></span>${icon('chev', 18)}</button>`).join('')}</div>`;
+  if (!list.length) return aiCard() + emptyState('Рецептів поки немає.', 'Зберігайте улюблені страви — і додавайте інгредієнти в покупки одним дотиком.', `<button class="btn" data-a="recipeForm">${icon('plus', 18)} Додати свій рецепт</button>`);
+  return `${aiCard()}<div class="cards">${list.map((r) => `<button class="card place" data-a="recipe" data-id="${r.id}"><span class="place-em">${r.ai ? '✨' : '🍲'}</span>
+    <span class="grow"><b>${esc(r.title)}</b><br><span class="muted small">${r.time ? esc(r.time) + ' · ' : ''}${r.ingredients.length} інгр.${r.ingredients.length ? ' · ' + esc(r.ingredients.slice(0, 3).join(', ')) : ''}</span></span>${icon('chev', 18)}</button>`).join('')}</div>`;
 }
 
 /* ---------------- handlers ---------------- */
@@ -118,15 +129,62 @@ function recipeForm(r) {
   });
 }
 on('recipeForm', () => recipeForm());
+on('aiKind', (el) => { S.ui.aiKind = el.dataset.v; S.render(); });
+
+function aiPreview(sh, r) {
+  const safe = /^https?:\/\//i.test(r.source_url || '') ? r.source_url : '';
+  sh.innerHTML = `<div class="grab"></div>
+    <div class="muted small">✨ ШІ знайшов для вас</div>
+    <h3 class="h2" style="margin:4px 0 6px">${esc(r.title)}</h3>
+    ${r.description ? `<p class="muted" style="margin:0 0 8px">${esc(r.description)}</p>` : ''}
+    <div class="row gap wrap">${r.time ? `<span class="chip">⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span class="chip">🍽 ${esc(r.servings)}</span>` : ''}</div>
+    <h4 class="sub-h">Інгредієнти</h4><ul class="ing">${r.ingredients.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+    <h4 class="sub-h">Приготування</h4><ol class="ing">${r.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+    ${safe ? `<a class="ai-src" href="${esc(safe)}" target="_blank" rel="noopener">${icon('link', 14)} Джерело: ${esc(r.source_name || safe)}</a>` : ''}
+    <button class="btn block mt" data-add>${icon('plus', 18)} Додати в наші рецепти</button>
+    <button class="btn secondary block" data-again>${icon('dice', 18)} Шукати інший</button>`;
+  sh.querySelector('[data-again]').onclick = () => aiSearch(sh);
+  sh.querySelector('[data-add]').onclick = async (e) => {
+    e.target.disabled = true;
+    const ok = await act({ type: 'add', col: 'recipes', item: {
+      title: r.title, description: r.description, time: r.time, servings: r.servings, ingredients: r.ingredients,
+      steps: r.steps.map((x, i) => `${i + 1}. ${x}`).join('\n'), link: safe, source: r.source_name, ai: true,
+    } });
+    if (ok) { closeSheet(); toast('Рецепт додано ✨'); } else e.target.disabled = false;
+  };
+}
+async function aiSearch(sh) {
+  sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'happy', size: 110, bob: true })}
+    <div class="spin"></div><b>ШІ шукає рецепт в інтернеті…</b><p class="muted small">Зазвичай це 10–30 секунд</p></div>`;
+  try {
+    const res = await fetch('/api/recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code, member: S.me.id, kind: ui('aiKind', 'any') }) });
+    const data = await res.json().catch(() => ({}));
+    if (!sh.isConnected) return;
+    if (!res.ok) {
+      const msg = data.error === 'ai_not_configured' ? 'ШІ ще не підключено. Додай ключ ANTHROPIC_API_KEY у налаштуваннях проєкту на Vercel (див. README).' : data.error === 'not_configured' ? 'Сервер ще не підключено до бази даних.' : data.error || 'Не вдалося звʼязатися із сервером.';
+      sh.innerHTML = `<div class="grab"></div><div class="center pad">${otter({ face: 'sad', size: 100 })}<p>${esc(msg)}</p></div><button class="btn secondary block" data-again>Спробувати ще</button>`;
+      sh.querySelector('[data-again]').onclick = () => aiSearch(sh);
+      return;
+    }
+    aiPreview(sh, data.recipe);
+  } catch {
+    if (!sh.isConnected) return;
+    sh.innerHTML = `<div class="grab"></div><p class="center pad">Немає звʼязку. Перевір інтернет.</p><button class="btn secondary block" data-again>Спробувати ще</button>`;
+    sh.querySelector('[data-again]').onclick = () => aiSearch(sh);
+  }
+}
+on('aiRecipe', () => { const sh = openSheet(''); aiSearch(sh); });
 on('recipe', (el) => {
   const r = S.room.recipes.find((x) => x.id === el.dataset.id);
   if (!r) return;
   const safeLink = /^https?:\/\//i.test(r.link || '') ? r.link : '';
   openSheet(`<div class="sheet-h"><h3>${esc(r.title)}</h3><button class="icon-btn sm" data-edit aria-label="Редагувати">${icon('pencil', 18)}</button></div>
+    ${r.description ? `<p class="muted" style="margin:0 0 8px">${esc(r.description)}</p>` : ''}
+    ${r.time || r.servings ? `<div class="row gap wrap">${r.time ? `<span class="chip">⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span class="chip">🍽 ${esc(r.servings)}</span>` : ''}</div>` : ''}
     ${r.ingredients.length ? `<h4 class="sub-h">Інгредієнти</h4><ul class="ing">${r.ingredients.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
       <button class="btn secondary block" data-shop>${icon('cart', 18)} Додати все в покупки</button>` : ''}
     ${r.steps ? `<h4 class="sub-h">Приготування</h4><div class="prose pre">${esc(r.steps)}</div>` : ''}
-    ${safeLink ? `<a class="btn ghost block" href="${esc(safeLink)}" target="_blank" rel="noopener">${icon('link', 18)} Відкрити посилання</a>` : ''}`, (sh) => {
+    ${safeLink ? `<a class="btn ghost block" href="${esc(safeLink)}" target="_blank" rel="noopener">${icon('link', 18)} ${r.source ? 'Джерело: ' + esc(r.source) : 'Відкрити посилання'}</a>` : ''}`, (sh) => {
     sh.querySelector('[data-edit]').onclick = () => recipeForm(r);
     const b = sh.querySelector('[data-shop]');
     if (b) b.onclick = async () => {
