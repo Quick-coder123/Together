@@ -275,7 +275,7 @@ a { color: inherit; }
 .goal-mini { display: flex; align-items: center; gap: 16px; text-align: left; }
 .goal-art { width: 92px; height: 92px; border-radius: 22px; background: #B9B9B4; display: grid; place-items: center; flex: none; }
 .goal-scene { position: relative; height: 210px; margin: 16px 0; border-radius: 26px; background: linear-gradient(#B4B2AC, #9F9C96); display: grid; place-items: end center; overflow: hidden; }
-.goal-scene svg { margin-bottom: -18px; }
+.goal-scene > svg { margin-bottom: -18px; }
 .goal-big { font-size: 110px; margin-bottom: 20px; }
 .inner { background: var(--card2); border: 1px solid var(--line); border-radius: 22px; padding: 16px; }
 .hist summary, details summary { cursor: pointer; font-weight: 700; color: var(--muted); padding: 6px 0; list-style: none; }
@@ -743,3 +743,12 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .sheet-x { position: absolute; right: 12px; top: 12px; z-index: 5; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--card2); color: var(--muted); border: 1px solid var(--line); }
 .sheet-x:active { transform: scale(.92); }
 .sheet-body > .sheet-h, .sheet-body > .h3:first-of-type { padding-right: 44px; }
+
+/* fixes: icon centering, calendar toolbar, number inputs */
+.goal-scene .corner { display: grid; place-items: center; background: rgba(30, 22, 18, .75); color: #fff; }
+.sec-h .ic-box { display: grid; place-items: center; flex: none; }
+.sec-h .ic-box .ico { display: block; }
+.cal-tools { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+.cal-tools .seg { margin-bottom: 0; flex: 1; }
+.cal-tools .btn { min-height: 0; height: auto; border-radius: 16px; padding: 0 14px; flex: none; }
+.num-input { font-variant-numeric: tabular-nums; }

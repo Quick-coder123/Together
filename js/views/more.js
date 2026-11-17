@@ -1,5 +1,5 @@
 // «Ще» and its sections: trips, calendar, goals, check-in, notes, settings, FAQ.
-import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, ui, LS, leave } from '../store.js';
+import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, ui, LS, leave, parseNum } from '../store.js';
 import { esc, icon, emptyState, avatar, fmtDate, fmtRange, money, MONTHS, WEEKDAYS, ago, plural, resizeImage, otter } from '../ui.js';
 import { addDays, weekStart, checkinWeek, CHECKIN_QUESTIONS, levelInfo } from '/lib/core.js';
 import { itemsBetween, KIND } from '../derive.js';
@@ -90,7 +90,7 @@ function tripView(id) {
   </div>
   <form class="add-line" data-form="tripSub" data-id="${t.id}" data-list="${tab}">${icon('plus', 22)}
     <input id="trip-in" placeholder="${tab === 'places' ? 'Що побачити або куди сходити…' : tab === 'pack' ? 'Що взяти з собою…' : 'На що витратили…'}" maxlength="100" autocomplete="off">
-    ${tab === 'expenses' ? '<input id="trip-amt" class="amt" type="number" inputmode="decimal" placeholder="₴">' : ''}<button class="send sm" type="submit" aria-label="Додати">${icon('plus', 18)}</button></form>
+    ${tab === 'expenses' ? '<input id="trip-amt" class="amt num-input" type="text" inputmode="decimal" data-num placeholder="₴" autocomplete="off">' : ''}<button class="send sm" type="submit" aria-label="Додати">${icon('plus', 18)}</button></form>
   ${list.length ? `<section class="card list">${list.map((x) => `<div class="li ${x.done ? 'done' : ''}">
     ${tab === 'expenses' ? `<span class="li-ic">💸</span>` : `<button class="check-b ${x.done ? 'on' : ''}" data-a="tripSubToggle" data-id="${t.id}" data-sid="${x.id}" data-list="${tab}">${x.done ? icon('check', 16) : ''}</button>`}
     <span class="grow">${esc(x.text)}${tab === 'expenses' ? `<br><span class="muted small">${esc(nameOf(x.by))}</span>` : ''}</span>
@@ -138,9 +138,9 @@ on('tripSubToggle', (el) => act({ type: 'sub', id: el.dataset.id, list: el.datas
 on('tripSubDel', (el) => act({ type: 'sub', id: el.dataset.id, list: el.dataset.list, op: 'remove', sid: el.dataset.sid }));
 on('form:tripSub', async (form) => {
   const text = form.querySelector('#trip-in').value.trim();
-  const amt = form.querySelector('#trip-amt')?.value;
+  const amt = parseNum(form.querySelector('#trip-amt')?.value);
   if (!text) return;
-  if (form.dataset.list === 'expenses' && !(Number(amt) > 0)) { toast('Вкажи суму'); return; }
+  if (form.dataset.list === 'expenses' && !(amt > 0)) { toast('Вкажи суму'); return; }
   if (await act({ type: 'sub', id: form.dataset.id, list: form.dataset.list, op: 'add', text, amount: amt })) document.getElementById('trip-in')?.focus();
 });
 
@@ -185,7 +185,7 @@ function calendarView() {
   }
   return `${back()}<div class="page-h"><div><h1>Календар</h1><p class="muted">Усі зустрічі й події на двох в одному місці.</p></div>
     <button class="icon-btn lg" data-a="eventForm" data-d="${sel}" aria-label="Нова подія">${icon('calheart', 22)}</button></div>
-  <div class="row gap"><div class="seg grow"><button class="seg-b ${mode === 'month' ? 'on' : ''}" data-a="calMode" data-v="month">Місяць</button><button class="seg-b ${mode === 'week' ? 'on' : ''}" data-a="calMode" data-v="week">Тиждень</button></div>
+  <div class="cal-tools"><div class="seg"><button class="seg-b ${mode === 'month' ? 'on' : ''}" data-a="calMode" data-v="month">Місяць</button><button class="seg-b ${mode === 'week' ? 'on' : ''}" data-a="calMode" data-v="week">Тиждень</button></div>
     <button class="btn secondary ${hidden.length ? 'on' : ''}" data-a="calFilter">${icon('filter', 18)} Фільтр</button></div>
   ${body}`;
 }

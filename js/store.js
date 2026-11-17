@@ -27,6 +27,32 @@ export const meM = () => S.room?.members[S.me.id];
 export const nameOf = (id) => (id === S.me.id ? 'Ти' : S.room?.members[id]?.name || 'Партнер');
 export const ui = (key, def) => (key in S.ui ? S.ui[key] : (S.ui[key] = def));
 
+/* ---------------- numbers with thousands separators ---------------- */
+// 1234567.5 → "1 234 567,5" (narrow no-break spaces between thousands)
+export function fmtNum(v) {
+  const [i, d] = String(v).replace('.', ',').split(',');
+  const int = i.replace(/\D/g, '').replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F');
+  return d !== undefined ? `${int || '0'},${d.replace(/\D/g, '').slice(0, 2)}` : int;
+}
+export function parseNum(s) {
+  const n = Number(String(s ?? '').replace(/[\s\u202F\u00A0]/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : NaN;
+}
+// Live formatting while typing, keeping the cursor after the same digit.
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el.matches?.('input[data-num]')) return;
+  const pos = el.selectionStart ?? el.value.length;
+  const digitsBefore = el.value.slice(0, pos).replace(/[^\d,.]/g, '').length;
+  const raw = el.value.replace(/[^\d,.]/g, '').replace(/\./g, ',').replace(/,(?=.*,)/g, '');
+  const out = raw === '' ? '' : fmtNum(raw);
+  el.value = out;
+  let seen = 0, caret = out.length;
+  for (let k = 0; k < out.length; k++) { if (/[\d,]/.test(out[k])) seen++; if (seen === digitsBefore) { caret = k + 1; break; } }
+  if (digitsBefore === 0) caret = 0;
+  try { el.setSelectionRange(caret, caret); } catch {}
+});
+
 /* ---------------- toast ---------------- */
 let toastTimer;
 export function toast(msg) {
@@ -192,7 +218,7 @@ export function openForm(cfg) {
       case 'select': input = `<select class="input" id="${id}">${f.options.map(([val, lab]) => `<option value="${esc(val)}" ${String(val) === String(v) ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>`; break;
       case 'seg': input = `<div class="seg" data-seg="${f.key}">${f.options.map(([val, lab]) => `<button type="button" class="seg-b ${String(val) === String(v) ? 'on' : ''}" data-v="${esc(val)}">${lab}</button>`).join('')}</div><input type="hidden" id="${id}" value="${esc(v)}">`; break;
       case 'check': return `<label class="check-row"><input type="checkbox" id="${id}" ${v ? 'checked' : ''}><span>${esc(f.label)}</span></label>`;
-      case 'number': input = `<input class="input" id="${id}" type="number" inputmode="decimal" step="any" value="${esc(v)}"${ph}>`; break;
+      case 'number': input = `<input class="input num-input" id="${id}" type="text" inputmode="decimal" data-num autocomplete="off" value="${esc(v === '' || v == null ? '' : fmtNum(v))}"${ph}>`; break;
       case 'date': case 'time': input = `<input class="input" id="${id}" type="${f.type}" value="${esc(v)}">`; break;
       default: input = `<input class="input" id="${id}" type="text" maxlength="${f.max || 120}" value="${esc(v)}"${ph}>`;
     }
@@ -222,7 +248,7 @@ export function openForm(cfg) {
       for (const f of cfg.fields) {
         const inp = el.querySelector('#f-' + f.key);
         if (f.type === 'check') vals[f.key] = inp.checked;
-        else if (f.type === 'number') vals[f.key] = inp.value === '' ? null : Number(inp.value);
+        else if (f.type === 'number') vals[f.key] = inp.value.trim() === '' ? null : parseNum(inp.value);
         else if (f.type === 'lines') vals[f.key] = inp.value.split('\n').map((x) => x.trim()).filter(Boolean);
         else vals[f.key] = inp.value.trim();
         if (f.required && (vals[f.key] === '' || vals[f.key] === null)) { toast(`Заповни поле «${f.label}»`); inp.focus(); return; }
