@@ -975,3 +975,5 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 @keyframes rainbowHue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 .wh-fab .hami { margin-top: 2px; }
 .p-mood-f .hami { width: 44px; }
+.tile-ic.spr { background: none !important; width: auto; height: auto; overflow: visible; margin: -8px 0 -4px -6px; }
+.shop-hami { flex: none; margin: -6px 0 -6px -6px; }

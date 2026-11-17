@@ -1,6 +1,6 @@
 // «Дім» — shopping, chores, recipes.
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, partnerId } from '../store.js';
-import { otter, cookScene } from '../ui.js';
+import { otter, hami, cookScene } from '../ui.js';
 import { esc, icon, emptyState, fmtDate } from '../ui.js';
 import { dayDiff } from '/lib/core.js';
 
@@ -38,7 +38,7 @@ function listHead(cat, nOpen, nDone) {
   const total = nOpen + nDone;
   const when = m ? (() => { const d = new Date(m.ts); const day = localDayKey(d); return (day === today() ? 'сьогодні' : fmtDate(day)) + ' о ' + d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); })() : '';
   return `<section class="card shop-head">
-    <div class="row"><span class="ic-box">${icon('cart', 22)}</span><div class="grow">
+    <div class="row"><span class="shop-hami">${hami('shopping', { size: 64 })}</span><div class="grow">
       <b>${m ? (m.by === S.me.id ? 'Твій список' : `Список від ${esc(nameOf(m.by))}`) : cat === 'food' ? 'Список продуктів' : 'Список покупок'}</b>
       <div class="muted small">${m ? when + ' · ' : ''}${total ? `куплено ${nDone} з ${total}` : 'поки порожній'}</div></div></div>
     ${total ? `<span class="bar-track mt"><span class="bar-fill" style="width:${Math.round((nDone / total) * 100)}%"></span></span>` : ''}

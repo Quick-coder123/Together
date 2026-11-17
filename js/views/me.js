@@ -24,7 +24,7 @@ export function meView() {
   ${moodCard(r, pid, t)}
   ${upcoming(r, t)}
   <div class="grid2">
-    <button class="tile warm" data-a="noteSheet"><span class="tile-ic">${icon('send')}</span><b>Записка</b><span>Надіслати сюрприз</span></button>
+    <button class="tile warm" data-a="noteSheet"><span class="tile-ic spr">${hami('letter', { size: 52 })}</span><b>Записка</b><span>Надіслати сюрприз</span></button>
     <button class="tile" data-a="evening"><span class="tile-ic">${icon('wand')}</span><b>Вечір</b><span>Кіно + рецепт</span></button>
   </div>
   ${checkinCard(r, pid, t)}
@@ -87,7 +87,7 @@ function petCard(r, t) {
   const hungry = !!pet.lastFed && isHungry(pet, t);
   const h = kyivHour();
   const night = (h >= 23 || h < 7) && nMeals > 0;
-  const face = night ? 'sleep' : hungry ? 'tired' : !fed ? 'thinking' : todayMood ? MOOD_POSE[todayMood] : nMeals === 3 ? 'joy' : 'cool';
+  const face = S.ui.petPose && S.ui.petPose.until > Date.now() ? S.ui.petPose.p : night ? 'sleep' : hungry ? 'tired' : !fed ? 'hungry' : todayMood ? MOOD_POSE[todayMood] : nMeals === 3 ? 'joy' : 'cool';
   const color = hungry ? 'grey' : { great: 'green', ok: 'yellow', sad: 'blue' }[todayMood] || 'green';
   const look = lookOf(pet);
   const tasks = tasksFor(t);
@@ -239,6 +239,7 @@ on('feed', async (el, e) => {
   e.stopPropagation();
   const meal = mealAt();
   if (await act({ type: 'feed' })) {
+    S.ui.petPose = { p: 'eat', until: Date.now() + 5000 }; S.render(); setTimeout(() => S.render(), 5100);
     floaty('🦗'); setTimeout(() => floaty('💕'), 300);
     const n = mealsDone(S.room.pet, today());
     toast(n === 3 ? `Ситий день! +${XP.feed} досвіду${S.room.pet.streak % 7 === 0 ? ` і +${XP.streak7} за тиждень 🔥` : ''}` : `Ням! ${MEALS[meal].name} ✓ (${n}/3). Досвід — коли будуть усі 3`);
@@ -258,7 +259,7 @@ function gameSheet(game) {
       if (finished || !box.isConnected) return;
       finished = true;
       sh.querySelector('[data-other]').remove();
-      box.innerHTML = `<div class="center pad">${hami(win ? 'joy' : 'sad', { size: 100 })}<div class="muted">Зачекай…</div></div>`;
+      box.innerHTML = `<div class="center pad">${hami('play', { size: 100 })}<div class="muted">Зачекай…</div></div>`;
       const ok = await act({ type: 'game', game: g.id, win }, { silent: true });
       if (!box.isConnected) return;
       const lf = S.room.pet.lastFind;

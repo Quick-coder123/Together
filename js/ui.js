@@ -120,9 +120,9 @@ export const PALETTE = {
   rainbow: ['url(#RB)', '#7E57C2', '#FFF4CC', '#FFFFFF'],
 };
 /* Хамі — sticker sprites (img/hami/*.webp). Colour = CSS hue shift of the green original. */
-export const HAMI_POSES = ['great', 'normal', 'sad', 'joy', 'wow', 'angry', 'guide', 'chef', 'whisper', 'sleep', 'thinking', 'tired', 'hello', 'cool', 'think', 'heart', 'hide', 'sit'];
+export const HAMI_POSES = ['cool', 'great', 'normal', 'sad', 'joy', 'wow', 'angry', 'tired', 'sleep', 'thinking', 'hello', 'heart', 'eat', 'hungry', 'play', 'letter', 'shopping', 'reminder', 'guide', 'chef', 'whisper', 'hide', 'think', 'sit'];
 // top of the cap, % of the sprite (for a hat worn on top)
-export const HAMI_TOP = { angry: [54.8, 1.8], chef: [42, 1.8], cool: [52.8, 2.2], great: [52.7, 1.8], guide: [52, 1.9], heart: [41.8, 1.8], hello: [53, 1.9], hide: [45.5, 1.9], joy: [45.1, 6.7], normal: [52.7, 1.8], sad: [62.9, 27], sit: [50.8, 1.9], sleep: [55.7, 34], think: [51.4, 1.9], thinking: [45, 9], tired: [45.4, 2.1], whisper: [49, 3.7], wow: [44.6, 1.9] };
+export const HAMI_TOP = { angry: [51.2, 2], chef: [32.3, 2.6], cool: [46.9, 5.2], eat: [45, 2.1], great: [47.4, 2.1], guide: [45.1, 2.5], heart: [39.9, 2.1], hello: [51.5, 2], hide: [45.5, 1.9], hungry: [48.8, 2], joy: [45, 2.8], letter: [47.5, 2], normal: [50.7, 2.1], play: [44.6, 2.2], reminder: [44, 2.4], sad: [55, 46], shopping: [42.8, 2.5], sit: [50.8, 1.9], sleep: [39.9, 34.2], think: [51.4, 1.9], thinking: [42.3, 2.1], tired: [56.7, 2.1], whisper: [49, 3.7], wow: [44.4, 2.1] };
 const HUE = {
   green: '', emerald: 'hue-rotate(25deg) saturate(1.1)', mint: 'hue-rotate(45deg)', turquoise: 'hue-rotate(75deg)', blue: 'hue-rotate(110deg)',
   night: 'hue-rotate(125deg) brightness(.8) saturate(1.2)', violet: 'hue-rotate(160deg)', pink: 'hue-rotate(215deg) saturate(.9)', coral: 'hue-rotate(250deg) saturate(1.1)',

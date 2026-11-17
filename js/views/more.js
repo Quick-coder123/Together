@@ -1,6 +1,6 @@
 // «Ще» and its sections: trips, calendar, goals, check-in, notes, settings, FAQ.
 import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, ui, LS, leave, parseNum } from '../store.js';
-import { esc, icon, emptyState, avatar, fmtDate, fmtRange, money, MONTHS, WEEKDAYS, ago, plural, resizeImage, otter } from '../ui.js';
+import { esc, icon, hami, emptyState, avatar, fmtDate, fmtRange, money, MONTHS, WEEKDAYS, ago, plural, resizeImage, otter } from '../ui.js';
 import { addDays, weekStart, checkinWeek, CHECKIN_QUESTIONS, levelInfo } from '/lib/core.js';
 import { itemsBetween, KIND } from '../derive.js';
 import { piggy, share } from './me.js';
@@ -199,7 +199,7 @@ function dayList(d, items, compact = false) {
   ${items.length ? `<section class="card list">${items.map((x) => `<div class="li cal-li"><button class="grow left row" data-a="calItem" data-ref="${x.ref ? x.ref.join(':') : ''}">
       <span class="kdot" style="background:${KIND[x.kind].color}"></span><span class="grow"><b>${esc(x.title)}</b><br><span class="muted small">${KIND[x.kind].label}${x.time ? ' · ' + x.time : ''}</span></span></button>
       <a class="gcal-b" href="${esc(gcalLink(x))}" target="_blank" rel="noopener" aria-label="Додати в Google Календар" title="Додати в Google Календар">${icon('cal', 16)}<i>G</i></a></div>`).join('')}</section>`
-    : compact ? '' : `<p class="center muted">Нічого не заплановано.</p><button class="dashed-btn" data-a="eventForm" data-d="${d}">${icon('plus', 18)} Запланувати на цей день</button>`}`;
+    : compact ? '' : `<div class="center">${hami('reminder', { size: 90 })}</div><p class="center muted">Нічого не заплановано.</p><button class="dashed-btn" data-a="eventForm" data-d="${d}">${icon('plus', 18)} Запланувати на цей день</button>`}`;
 }
 
 function eventForm(e, date) {
