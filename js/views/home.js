@@ -44,6 +44,7 @@ function listHead(cat, nOpen, nDone) {
     ${total ? `<span class="bar-track mt"><span class="bar-fill" style="width:${Math.round((nDone / total) * 100)}%"></span></span>` : ''}
     <div class="${total ? 'grid2' : ''} mt"><button class="btn ${total ? '' : 'block'}" data-a="shopNew" data-v="${cat}">${icon('plus', 18)} Новий список</button>
       ${nOpen ? `<button class="btn secondary" data-a="shopMore" data-v="${cat}">${icon('pencil', 16)} Доповнити</button>` : ''}</div>
+    ${total ? `<button class="btn ghost block danger-t mt-s" data-a="shopClear" data-v="${cat}">${icon('trash', 16)} Очистити все</button>` : ''}
   </section>`;
 }
 const localDayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -167,6 +168,21 @@ function listSheet(cat, fresh) {
     if (ok) { closeSheet(); toast(fresh ? (pid ? 'Список готовий — пару сповіщено 🛒' : 'Список готовий 🛒') : 'Додано в список 🛒'); } else btn.disabled = false;
   };
 }
+on('shopClear', (el) => {
+  const cat = el.dataset.v === 'other' ? 'other' : 'food';
+  const n = S.room.shopping.filter((x) => x.cat === cat).length;
+  openSheet(`<div class="center pad">${otter({ face: 'sad', size: 90 })}
+    <h3 class="h3 mt">Очистити весь список?</h3>
+    <p class="muted">Буде видалено ${n} ${n === 1 ? 'пункт' : n < 5 ? 'пункти' : 'пунктів'} — і куплені, і ще не куплені. Це не можна скасувати.</p></div>
+    <button class="btn danger-fill block" data-yes>${icon('trash', 18)} Так, очистити</button>
+    <button class="btn ghost block" data-no>Скасувати</button>`, (sh) => {
+    sh.querySelector('[data-no]').onclick = closeSheet;
+    sh.querySelector('[data-yes]').onclick = async (e) => {
+      e.currentTarget.disabled = true;
+      if (await act({ type: 'shopClear', cat })) { closeSheet(); toast('Список очищено'); } else e.currentTarget.disabled = false;
+    };
+  });
+});
 on('shopNew', (el) => listSheet(el.dataset.v === 'other' ? 'other' : 'food', true));
 on('shopMore', (el) => listSheet(el.dataset.v === 'other' ? 'other' : 'food', false));
 on('shopToggle', (el) => { const x = S.room.shopping.find((i) => i.id === el.dataset.id); if (x) act({ type: 'update', col: 'shopping', id: x.id, patch: { done: !x.done } }); });

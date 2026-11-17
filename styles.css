@@ -886,3 +886,5 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .wh-input .icon-btn { background: #2F9C84; color: #fff; flex: none; }
 .wh-log > .wh-msg { flex: none; }
 .wh-log > .wh-msg.err { max-width: 86%; }
+.btn.danger-fill { background: var(--pink); color: #fff; }
+.btn.ghost.danger-t { color: var(--pink); }
