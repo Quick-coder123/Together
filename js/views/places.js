@@ -1,6 +1,6 @@
 // «Місця» — places and dates.
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, LS } from '../store.js';
-import { esc, icon, emptyState, fmtDate, otter, mapScene } from '../ui.js';
+import { esc, icon, emptyState, fmtDate, otter, hami, mapScene } from '../ui.js';
 import { geocodeCity, reverse, nearbyPlaces, suggestCities, reportMapError } from '../osm.js';
 
 export const CATS = {
@@ -31,7 +31,7 @@ export function placesView() {
   </div>
   ${blind.map(blindCard).join('')}
   <button class="card ai-where" data-a="whereGo">
-    <span class="ic-box guide-ic">🦎</span>
+    <span class="guide-hami">${hami('guide', { size: 64 })}</span>
     <span class="grow"><b>Куди піти?</b><br><span class="muted small">Гід-хамелеон Хамі знайде цікаві місця біля тебе або в обраному місті</span></span>${icon('chev', 18)}
   </button>
   <div class="seg big">
@@ -188,7 +188,7 @@ function whereForm(sh, note = '') {
   const k = ui('whereKind', 'any');
   const city = LS.get('lastCity', '');
   sh.innerHTML = `<div class="grab"></div>
-    <div class="sheet-h"><h3>🦎 Гід-хамелеон</h3></div>
+    <div class="sheet-h guide-head">${hami('guide', { size: 56 })}<h3>Гід-хамелеон</h3></div>
     <p class="muted small" style="margin-top:-6px">Хамі розгорне мапу, знайде справжні місця поруч і підкаже, що там зробити удвох.</p>
     ${note ? `<div class="info-bar small">📍 ${esc(note)}</div>` : ''}
     <div class="sec-label">ЩО ХОЧЕТЬСЯ</div>

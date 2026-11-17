@@ -1041,3 +1041,5 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 #pet-live[data-stage=baby] .pet-shadow { width: 34%; } #pet-live[data-stage=kid] .pet-shadow { width: 38%; } #pet-live[data-stage=teen] .pet-shadow { width: 42%; }
 #pet-live.a-jump .pet-shadow, #pet-live.a-hop .pet-shadow { animation: shadowJump .55s ease-in-out 3; }
 @keyframes shadowJump { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; } 60% { transform: translateX(-50%) scale(.6); opacity: .5; } }
+.guide-hami { flex: none; margin: -8px 0 -8px -6px; }
+.sheet-h.guide-head { justify-content: flex-start; gap: 6px; }
