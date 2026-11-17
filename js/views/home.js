@@ -30,11 +30,8 @@ function shopView() {
     <button class="pill ${cat === 'other' ? 'on' : ''}" data-a="shopCat" data-v="other">Інші покупки</button>
   </div>
   ${listHead(cat, open.length, done.length)}
-  <form class="add-line" data-form="shop">${icon('plus', 22)}<input id="shop-in" placeholder="${cat === 'food' ? 'Додати молоко, сир, фрукти…' : 'Додати мило, батарейки…'}" maxlength="80" enterkeyhint="done" autocomplete="off"></form>
-  ${cat === 'food' ? `<div class="tags">${S.room.tags.map((t) => `<span class="tag"><button data-a="tagAdd" data-t="${esc(t)}">+ ${esc(t)}</button><button class="tag-x" data-a="tagDel" data-t="${esc(t)}" aria-label="Прибрати тег">${icon('x', 14)}</button></span>`).join('')}
-    <button class="tag dashed" data-a="tagNew">${icon('plus', 14)} Свій тег</button></div>` : ''}
   ${items.length ? `<section class="card list">${open.map(shopItem).join('')}${done.length ? `<div class="li-sep"><span>Куплено · ${done.length}</span><button class="link accent" data-a="clearDone" data-v="${cat}">Очистити</button></div>${done.map(shopItem).join('')}` : ''}</section>`
-    : emptyState('Список порожній — додай, що треба купити.')}`;
+    : ''}`;
 }
 function listHead(cat, nOpen, nDone) {
   const m = S.room.shopMeta?.[cat];
@@ -45,7 +42,8 @@ function listHead(cat, nOpen, nDone) {
       <b>${m ? (m.by === S.me.id ? 'Твій список' : `Список від ${esc(nameOf(m.by))}`) : cat === 'food' ? 'Список продуктів' : 'Список покупок'}</b>
       <div class="muted small">${m ? when + ' · ' : ''}${total ? `куплено ${nDone} з ${total}` : 'поки порожній'}</div></div></div>
     ${total ? `<span class="bar-track mt"><span class="bar-fill" style="width:${Math.round((nDone / total) * 100)}%"></span></span>` : ''}
-    <button class="btn block mt" data-a="shopNew" data-v="${cat}">${icon('plus', 18)} Новий список</button>
+    <div class="${total ? 'grid2' : ''} mt"><button class="btn ${total ? '' : 'block'}" data-a="shopNew" data-v="${cat}">${icon('plus', 18)} Новий список</button>
+      ${nOpen ? `<button class="btn secondary" data-a="shopMore" data-v="${cat}">${icon('pencil', 16)} Доповнити</button>` : ''}</div>
   </section>`;
 }
 const localDayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -53,7 +51,7 @@ export const splitItems = (t) => String(t || '').split(/[\n,;]+/).map((x) => x.r
 
 const shopItem = (x) => `<div class="li ${x.done ? 'done' : ''}">
   <button class="check-b ${x.done ? 'on' : ''}" data-a="shopToggle" data-id="${x.id}" aria-label="Куплено">${x.done ? icon('check', 16) : ''}</button>
-  <span class="grow">${esc(x.text)}</span><button class="icon-btn xs ghost" data-a="del" data-col="shopping" data-id="${x.id}" aria-label="Видалити">${icon('x', 16)}</button></div>`;
+  <span class="grow"><span class="txt">${esc(x.text)}</span>${x.qty ? ` <span class="qty">${esc(x.qty)}</span>` : ''}${x.note ? `<br><span class="muted small">${esc(x.note)}</span>` : ''}</span><button class="icon-btn xs ghost" data-a="del" data-col="shopping" data-id="${x.id}" aria-label="Видалити">${icon('x', 16)}</button></div>`;
 
 function choreState(c, t) {
   if (c.repeat === 'none') return { due: !c.done, label: c.done ? 'Зроблено' : '' };
@@ -94,41 +92,83 @@ on('homeTab', (el) => { S.ui.homeTab = el.dataset.v; S.render(); });
 on('shopCat', (el) => { S.ui.shopCat = el.dataset.v; S.render(); });
 on('homeAdd', () => {
   const tab = ui('homeTab', 'shop');
-  if (tab === 'shop') document.getElementById('shop-in')?.focus();
+  if (tab === 'shop') { const cat = ui('shopCat', 'food'); listSheet(cat, !S.room.shopping.some((x) => x.cat === cat && !x.done)); }
   else if (tab === 'chores') choreForm();
   else recipeForm();
 });
 export async function addShop(text, cat = ui('shopCat', 'food')) {
   const items = splitItems(text);
-  if (!items.length) return;
-  if (items.length === 1) await act({ type: 'add', col: 'shopping', item: { text: items[0], cat } });
-  else await act({ type: 'shopList', cat, items, fresh: false });
+  if (items.length) await act({ type: 'shopList', cat, items, fresh: false });
 }
-on('shopNew', (el) => {
-  const cat = el.dataset.v === 'other' ? 'other' : 'food';
+
+/* Building a list: each product is a row with a required quantity and an optional note. */
+function listSheet(cat, fresh) {
   const items = S.room.shopping.filter((x) => x.cat === cat);
   const left = items.filter((x) => !x.done), bought = items.filter((x) => x.done);
   const pid = partnerId();
-  openSheet(`<div class="sheet-h"><h3>Новий список ${cat === 'food' ? 'продуктів' : 'покупок'}</h3></div>
-    <label class="field"><span>Що купити?</span><textarea class="input" id="sl-items" rows="6" placeholder="${cat === 'food' ? 'Молоко\nХліб\nСир, яйця, банани' : 'Мило\nБатарейки'}"></textarea></label>
-    <p class="muted small" style="margin:-4px 0 10px">Кожен продукт з нового рядка або через кому.</p>
-    ${left.length || bought.length ? `<div class="carry">
+  const rows = [];
+  const what = cat === 'food' ? 'продуктів' : 'покупок';
+  const sh = openSheet(`<div class="sheet-h"><h3>${fresh ? `Новий список ${what}` : 'Доповнити список'}</h3></div>
+    <form class="add-line sl-add" data-sl-add>${icon('plus', 22)}<input id="sl-in" placeholder="${cat === 'food' ? 'Молоко, хліб, сир…' : 'Мило, батарейки…'}" maxlength="200" enterkeyhint="done" autocomplete="off"><button class="btn sm" type="submit">Додати</button></form>
+    <div class="tags sl-tags"></div>
+    <div class="sl-rows"></div>
+    ${fresh && (left.length || bought.length) ? `<div class="carry mt">
       ${left.length ? `<div>${icon('check', 14)} <b>${left.length}</b> некуплен${left.length === 1 ? 'е' : 'их'} з попереднього списку перейд${left.length === 1 ? 'е' : 'уть'} у новий: <span class="muted">${esc(left.slice(0, 4).map((x) => x.text).join(', '))}${left.length > 4 ? '…' : ''}</span></div>` : ''}
       ${bought.length ? `<div class="mt-s">${icon('trash', 14)} Куплене (${bought.length}) зникне.</div>` : ''}</div>` : ''}
-    <button class="btn block mt" data-ok>${icon('cart', 18)} Створити список${pid ? ' і сповістити' : ''}</button>`, (sh) => {
-    const ta = sh.querySelector('#sl-items');
-    sh.querySelector('[data-ok]').onclick = async (e) => {
-      const list = splitItems(ta.value);
-      if (!list.length && !left.length) { toast('Додай хоча б один продукт'); ta.focus(); return; }
-      e.currentTarget.disabled = true;
-      const ok = await act({ type: 'shopList', cat, items: list, fresh: true });
-      if (ok) { closeSheet(); toast(pid ? 'Список готовий — пару сповіщено 🛒' : 'Список готовий 🛒'); } else e.currentTarget.disabled = false;
-    };
+    <button class="btn block mt" data-ok>${icon('cart', 18)} ${fresh ? `Створити список${pid ? ' і сповістити' : ''}` : 'Додати в список'}</button>`);
+  const inp = sh.querySelector('#sl-in'), box = sh.querySelector('.sl-rows'), tagsBox = sh.querySelector('.sl-tags');
+  const drawTags = () => {
+    tagsBox.innerHTML = cat === 'food' ? `${S.room.tags.map((t) => `<span class="tag"><button type="button" data-t="${esc(t)}">+ ${esc(t)}</button><button type="button" class="tag-x" data-tx="${esc(t)}" aria-label="Прибрати тег">${icon('x', 14)}</button></span>`).join('')}
+      <button type="button" class="tag dashed" data-tnew>${icon('plus', 14)} Свій тег</button>` : '';
+  };
+  const draw = (focusLast) => {
+    box.innerHTML = rows.length ? `<div class="sl-h muted small">У списку · ${rows.length}</div>` + rows.map((r, i) => `<div class="sl-row ${r.miss ? 'miss' : ''}" data-i="${i}">
+      <div class="row"><b class="grow">${esc(r.text)}</b><button type="button" class="icon-btn xs ghost" data-rm aria-label="Прибрати">${icon('x', 16)}</button></div>
+      <div class="sl-f"><input class="input sm" data-k="qty" placeholder="К-ть *" maxlength="20" value="${esc(r.qty)}" autocomplete="off">
+      <input class="input sm" data-k="note" placeholder="Примітка" maxlength="120" value="${esc(r.note)}" autocomplete="off"></div></div>`).join('') : `<p class="center muted small pad">Додай продукти — кожен окремим рядком з кількістю.</p>`;
+    if (focusLast) box.querySelector('.sl-row:last-child [data-k=qty]')?.focus();
+  };
+  const add = (text) => {
+    const list = splitItems(text);
+    for (const t of list) if (!rows.some((r) => r.text.toLowerCase() === t.toLowerCase())) rows.push({ text: t, qty: '', note: '' });
+    if (list.length) draw(true);
+  };
+  drawTags(); draw();
+  sh.querySelector('[data-sl-add]').onsubmit = (e) => { e.preventDefault(); add(inp.value); inp.value = ''; };
+  box.addEventListener('input', (e) => {
+    const row = e.target.closest('.sl-row'); if (!row) return;
+    const r = rows[+row.dataset.i]; r[e.target.dataset.k] = e.target.value;
+    if (r.qty.trim()) { r.miss = false; row.classList.remove('miss'); }
   });
-});
-on('tagAdd', (el) => addShop(el.dataset.t, 'food'));
-on('tagDel', (el) => act({ type: 'tag', text: el.dataset.t, remove: true }));
-on('tagNew', () => openForm({ title: 'Свій тег', intro: 'Те, що ви купуєте найчастіше — додаватиметься одним дотиком.', fields: [{ key: 't', label: 'Назва', max: 30, required: true }], onSubmit: (v) => act({ type: 'tag', text: v.t }) }));
+  box.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (e.target.dataset.k === 'qty') e.target.nextElementSibling?.focus(); else inp.focus(); } });
+  box.addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (b) { rows.splice(+b.closest('.sl-row').dataset.i, 1); draw(); } });
+  tagsBox.addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-t]'), x = e.target.closest('[data-tx]'), n = e.target.closest('[data-tnew]');
+    if (t) add(t.dataset.t);
+    else if (x) { await act({ type: 'tag', text: x.dataset.tx, remove: true }, { render: false }); drawTags(); }
+    else if (n) {
+      const v = splitItems(inp.value)[0];
+      if (!v) { toast('Напиши назву в полі зверху й натисни «Свій тег»'); inp.focus(); return; }
+      await act({ type: 'tag', text: v }, { render: false }); inp.value = ''; drawTags(); toast(`«${v}» тепер додається одним дотиком`);
+    }
+  });
+  sh.querySelector('[data-ok]').onclick = async (e) => {
+    if (inp.value.trim()) { add(inp.value); inp.value = ''; }
+    if (!rows.length && !(fresh && left.length)) { toast('Додай хоча б один продукт'); inp.focus(); return; }
+    const missing = rows.filter((r) => !r.qty.trim());
+    if (missing.length) {
+      rows.forEach((r) => { r.miss = !r.qty.trim(); }); draw();
+      toast(`Вкажи кількість: ${missing.slice(0, 3).map((r) => r.text).join(', ')}${missing.length > 3 ? '…' : ''}`);
+      box.querySelector('.sl-row.miss [data-k=qty]')?.focus();
+      return;
+    }
+    const btn = e.currentTarget; btn.disabled = true;
+    const ok = await act({ type: 'shopList', cat, fresh, items: rows.map(({ text, qty, note }) => ({ text, qty: qty.trim(), note: note.trim() })) });
+    if (ok) { closeSheet(); toast(fresh ? (pid ? 'Список готовий — пару сповіщено 🛒' : 'Список готовий 🛒') : 'Додано в список 🛒'); } else btn.disabled = false;
+  };
+}
+on('shopNew', (el) => listSheet(el.dataset.v === 'other' ? 'other' : 'food', true));
+on('shopMore', (el) => listSheet(el.dataset.v === 'other' ? 'other' : 'food', false));
 on('shopToggle', (el) => { const x = S.room.shopping.find((i) => i.id === el.dataset.id); if (x) act({ type: 'update', col: 'shopping', id: x.id, patch: { done: !x.done } }); });
 on('clearDone', (el) => act({ type: 'clearDone', col: 'shopping', cat: el.dataset.v }));
 on('del', (el) => act({ type: 'remove', col: el.dataset.col, id: el.dataset.id }));

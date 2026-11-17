@@ -824,3 +824,16 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .shop-head .grow { min-width: 0; }
 .carry { background: var(--card2); border-radius: 14px; padding: 10px 12px; font-size: 14px; line-height: 1.4; }
 .carry svg { display: inline-block; vertical-align: -2px; }
+.sl-add { margin-bottom: 8px; padding-right: 6px; }
+.sl-add .btn.sm { flex: none; }
+.sl-tags { margin-bottom: 6px; }
+.sl-h { margin: 6px 2px 6px; }
+.sl-row { background: var(--card2); border-radius: 16px; padding: 10px 12px; margin-top: 8px; border: 1.5px solid transparent; }
+.sl-row .grow { min-width: 0; overflow-wrap: anywhere; }
+.sl-row.miss { border-color: var(--pink, #F28DB2); }
+.sl-f { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 8px; margin-top: 8px; }
+.input.sm { min-height: 40px; padding: 8px 12px; font-size: 15px; border-radius: 12px; }
+.sl-row.miss [data-k=qty] { border-color: var(--pink, #F28DB2); }
+.li .qty { display: inline-block; padding: 1px 8px; border-radius: 8px; background: var(--card2); font-size: 13px; font-weight: 700; color: var(--accent-t, #E7B98A); vertical-align: 1px; }
+.li.done .qty { opacity: .6; }
+.shop-head .grid2 .btn { white-space: nowrap; padding: 0 10px; font-size: clamp(13.5px, 3.8vw, 15px); gap: 6px; }
