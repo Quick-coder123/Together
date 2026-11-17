@@ -1023,3 +1023,9 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .pet-say.in { opacity: 1; transform: translateX(-50%) scale(1); }
 .pet-say.out { opacity: 0; transform: translateX(-50%) scale(.8); }
 .hami img { margin: 0 auto; }
+#pet-live { transition: transform .5s ease; will-change: transform; }
+#pet-live.walking .hami { animation: gait .3s ease-in-out infinite; }
+@keyframes gait { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-5px) rotate(-2deg); } 50% { transform: translateY(0) scale(1.02, .98); } 75% { transform: translateY(-5px) rotate(2deg); } }
+.pet-scene .pet-otter .hami img { transition: width .2s; }
+.pet-scene .tap-pill { left: auto; right: 12px; bottom: 12px; transform: none; padding: 7px 12px; }
+.pet-scene .pet-otter { margin-top: 26px; }

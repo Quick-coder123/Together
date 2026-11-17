@@ -124,7 +124,7 @@ export const HAMI_STAGES = ['baby', 'kid', 'teen', 'adult'];
 export const HAMI_POSES = [...HAMI_STAGES, 'letter', 'shopping', 'reminder', 'guide', 'chef', 'great', 'normal', 'sad', 'joy', 'wow', 'angry', 'tired', 'sleep', 'thinking', 'heart', 'eat', 'hungry', 'play'];
 // older pose names → current pictures
 const HAMI_ALIAS = { cool: 'adult', sit: 'adult', idle: 'adult', hello: 'wave3', whisper: 'normal', hide: 'thinking', think: 'thinking' };
-export const hamiSrc = (pose) => `/img/hami/${HAMI_ALIAS[pose] || (HAMI_POSES.includes(pose) || /^(idle|wave|jump)\d$/.test(pose) ? pose : 'adult')}.webp`;
+export const hamiSrc = (pose) => `/img/hami/${HAMI_ALIAS[pose] || (HAMI_POSES.includes(pose) || /^[a-z]+\d$/.test(pose) ? pose : 'adult')}.webp`;
 // younger stages are smaller: other poses are drawn adult-size, so scale them down
 export const STAGE_SCALE = { baby: 0.72, kid: 0.82, teen: 0.92, adult: 1 };
 // top of the cap, % of the sprite (for a hat worn on top)
