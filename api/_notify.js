@@ -197,9 +197,8 @@ export function digestFor(room, mid, today) {
     if (c.repeat === 'none') { if (!c.done && c.who === mid) lines.push(`🧹 ${c.text}`); continue; }
     if (!c.lastDone || dayDiff(c.lastDone, today) >= REPEAT_DAYS[c.repeat]) lines.push(`🧹 ${c.text}`);
   }
-  const fed = room.pet?.lastFed === today;
   const streak = streakOf(room.pet || {}, today);
-  if (!fed) lines.push(streak > 1 ? `🦎 ${room.pet.name} чекає на сніданок — не втрачайте вогник 🔥${streak}` : `🦎 ${room.pet?.name || 'Хамі'} зголоднів — погодуй його`);
+  if (room.pet) lines.push(streak > 1 ? `🦎 ${room.pet.name}: сніданок, обід і вечеря — тримаємо вогник 🔥${streak}` : `🦎 Не забудьте погодувати ${room.pet.name} 3 рази: сніданок, обід, вечеря`);
   if (!lines.length) return null;
   const head = lines.slice(0, 4).join('\n');
   return { title: 'Доброго ранку! Не забудьте сьогодні 🌞', body: head + (lines.length > 4 ? `\n…і ще ${lines.length - 4}` : ''), tag: 'digest' };

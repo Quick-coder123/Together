@@ -911,7 +911,7 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .scene-aurora { background: linear-gradient(170deg, #0F2A3A 0%, #1E6F6A 35%, #6BE3A8 55%, #8F6BE3 75%, #12142E 100%) !important; }
 .pet-scene .deco { position: absolute; inset: 0; pointer-events: none; }
 .pet-scene .deco i { position: absolute; font-style: normal; font-size: 22px; opacity: .85; animation: decoFloat 6s ease-in-out infinite; animation-delay: calc(var(--i) * -2s); }
-.pet-scene .deco i:nth-child(1) { left: 8%; top: 64%; } .pet-scene .deco i:nth-child(2) { left: 22%; top: 22%; font-size: 18px; } .pet-scene .deco i:nth-child(3) { left: 80%; top: 72%; font-size: 18px; }
+.pet-scene .deco i:nth-child(1) { left: 8%; top: 64%; } .pet-scene .deco i:nth-child(2) { left: 30%; top: 38%; font-size: 18px; } .pet-scene .deco i:nth-child(3) { left: 80%; top: 72%; font-size: 18px; }
 @keyframes decoFloat { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(6deg); } }
 .pet-scene.hungry .pet-otter { filter: saturate(.5); }
 .hungry-tag { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.45); color: #fff; }
@@ -957,3 +957,9 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 .g-stroop.shake { animation: wiggle .1s 3; }
 .g-score-l { text-align: center; font-weight: 700; color: var(--muted); }
 .g-col { gap: 8px; } .g-col .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.pet-scene > .meals { position: absolute; left: 14px; top: 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 2; }
+.pet-scene > .meals .chip.ok { background: rgba(95, 185, 138, .35); color: #E6FFF0; }
+.meal-dots { display: inline-flex; gap: 4px; padding: 3px 6px; border-radius: 999px; background: rgba(0,0,0,.25); }
+.meal-dots i { font-style: normal; font-size: 15px; opacity: .35; filter: grayscale(1); }
+.meal-dots i.on { opacity: 1; filter: none; }
+.meal-dots i.now { opacity: .8; filter: none; animation: whBob 1.6s ease-in-out infinite; }

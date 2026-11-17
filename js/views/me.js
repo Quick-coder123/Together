@@ -1,7 +1,7 @@
 // «Ми» — the main screen.
 import { S, on, act, go, openSheet, closeSheet, openForm, toast, today, partnerId, partner, meM, nameOf, LS } from '../store.js';
 import { esc, icon, otter, avatar, fmtDate, plural, money, emptyState } from '../ui.js';
-import { levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
+import { MEALS, mealAt, mealsOf, mealsDone, levelInfo, streakOf, tasksFor, TASKS, MOODS, checkinWeek, dayDiff, addDays, FINDS, RARITY, XP, ITEMS, SLOTS, BADGES, lookOf, itemOf, unlocked, unlockText, isHungry } from '/lib/core.js';
 import { GAMES, pickGame } from '../games.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
 
@@ -80,7 +80,8 @@ function petCard(r, t) {
   const pet = r.pet;
   const lv = levelInfo(pet.xp);
   const streak = streakOf(pet, t);
-  const fed = pet.lastFed === t;
+  const meals = mealsOf(pet, t), nMeals = mealsDone(pet, t), cur = mealAt();
+  const fed = !!meals[cur] || nMeals === 3;
   const myMood = r.moods[S.me.id];
   const todayMood = myMood?.date === t ? myMood.value : null;
   const hungry = isHungry(pet, t);
@@ -101,7 +102,8 @@ function petCard(r, t) {
     </div>
     <div class="muted small">${esc(pet.name)} · ${lv.stage} · рівень ${lv.level}</div>
     <div class="pet-scene scene-${look.scene} ${hungry ? 'hungry' : ''}" id="stage" data-a="play">${sceneDeco(look.scene)}
-      ${fed ? `<span class="chip ok">${icon('check', 14)} Нагодований</span>` : `<button class="chip warn" data-a="feed">🦗 Нагодувати</button>`}
+      <div class="meals">${!meals[cur] ? `<button class="chip warn" data-a="feed">🦗 ${MEALS[cur].name}</button>` : `<span class="chip ok">${icon('check', 14)} ${nMeals === 3 ? 'Ситий на весь день' : 'Нагодований'}</span>`}
+        <span class="meal-dots">${Object.entries(MEALS).map(([k, m]) => `<i class="${meals[k] ? 'on' : k === cur ? 'now' : ''}" title="${m.name}">${m.e}</i>`).join('')}</span></div>
       <button class="wardrobe" data-a="wardrobe" aria-label="Гардероб">${icon('shirt', 20)}</button>
       <button class="wardrobe second" data-a="collection" aria-label="Колекція знахідок">🍃<span class="wd-n">${found}</span></button>
       <button class="wardrobe third" data-a="badges" aria-label="Нагороди">🏅<span class="wd-n">${Object.keys(pet.badges || {}).length}</span></button>
@@ -233,7 +235,12 @@ function moodBurst(btn, emojis) {
 }
 on('feed', async (el, e) => {
   e.stopPropagation();
-  if (await act({ type: 'feed' })) { floaty('🦗'); setTimeout(() => floaty('💕'), 300); toast(`Ням! +${XP.feed} досвіду${S.room.pet.streak % 7 === 0 ? ` і +${XP.streak7} за тиждень турботи 🔥` : ''}`); }
+  const meal = mealAt();
+  if (await act({ type: 'feed' })) {
+    floaty('🦗'); setTimeout(() => floaty('💕'), 300);
+    const n = mealsDone(S.room.pet, today());
+    toast(n === 3 ? `Ситий день! +${XP.feed} досвіду${S.room.pet.streak % 7 === 0 ? ` і +${XP.streak7} за тиждень 🔥` : ''}` : `Ням! ${MEALS[meal].name} ✓ (${n}/3). Досвід — коли будуть усі 3`);
+  }
 });
 
 /* ----- games ----- */
@@ -320,7 +327,7 @@ on('petName', () => openForm({
 
 on('petHelp', () => openSheet(`<h3 class="h3">Як доглядати за улюбленцем</h3>
   <div class="prose">
-  <p>🦗 <b>Годуйте щодня</b> (+${XP.feed}). Кожні 7 днів поспіль — ще +${XP.streak7} 🔥. Якщо не годувати 2+ дні, хамелеон голодний: ігри не дають досвіду, а щодня зникає ${XP.hunger} досвіду (рівень не падає).</p>
+  <p>🦗 <b>Годуйте 3 рази на день</b>: сніданок (до 11:00), обід (11–17), вечеря (після 17:00). Годувати може будь-хто з вас — зараховується обом. Коли є всі три — +${XP.feed} і день іде у вогник 🔥, а кожні 7 ситих днів поспіль — ще +${XP.streak7}. Якщо не годувати 2+ дні, хамелеон голодний: ігри не дають досвіду, а щодня зникає ${XP.hunger} досвіду (рівень не падає).</p>
   <p>✅ <b>Завдання дня</b> — по +${XP.task}. Коли <b>обоє</b> виконали всі три — +${XP.team} командного бонусу 🤝</p>
   <p>🎮 <b>Ігри</b> — +${XP.game} за перемогу (до ${XP.gameDay} на день) і знахідка в колекцію. Ігор 11, щоразу випадає інша.</p>
   <p>💞 <b>Справжні зустрічі</b> важать більше: «Були тут» на місці — +${XP.visit}, спільний чек-ін тижня — +${XP.checkin}.</p>

@@ -2,7 +2,7 @@
 // recomputes from the room what is due right now, so edited or deleted plans never fire stale reminders.
 // Each reminder is sent once (Redis "claim" key with expiry).
 import { itemsBetween } from '../js/derive.js';
-import { addDays } from '../lib/core.js';
+import { addDays, mealsOf, MEALS } from '../lib/core.js';
 
 export const TZ = 'Europe/Kyiv';
 const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -79,6 +79,16 @@ export function remindersDue(room, from, to) {
     const emoji = it.kind === 'place' ? '📍' : src.kind === 'date' ? '💞' : '📅';
     if (at(eve)) out.push({ key: `eve:${k}`, to: members, title: 'Завтра в планах', body: `${emoji} ${it.title}${when}${src.address ? ' · ' + src.address : ''}`, tag: 'eve-' + id });
     if (soon && at(soon)) out.push({ key: `soon:${k}`, to: members, title: 'Через 2 години', body: `${emoji} ${it.title}${when}`, tag: 'soon-' + id, urgent: true });
+  }
+
+  // Pet meals: a nudge near the end of each meal window if nobody fed the chameleon yet.
+  if (room.pet) {
+    const pet = room.pet, meals = mealsOf(pet, today), nm = pet.name || 'Хамі';
+    for (const [k, t, txt] of [['b', '10:15', `${MEALS.b.e} ${nm} чекає на сніданок! До 11:00 ще встигнете.`], ['l', '16:15', `${MEALS.l.e} ${nm} зголоднів — час обіду (до 17:00).`], ['d', '21:00', `${MEALS.d.e} ${nm} чекає на вечерю. Без неї день не зарахується 🥺`]]) {
+      if (meals[k]) continue;
+      const ms = kyivMs(today, t);
+      if (at(ms)) out.push({ key: `meal:${today}:${k}`, to: members, title: 'Годування хамелеона', body: txt, tag: 'meal' });
+    }
   }
 
   // Shopping: the whole day the list was made, every few hours while something is still not bought.
