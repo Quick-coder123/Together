@@ -1,0 +1,10 @@
+{
+  "name": "ottership",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "DEV_MEMORY=1 node scripts/dev.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
