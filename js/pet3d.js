@@ -12,6 +12,12 @@ const EYES = [
   { c: [0.53, 0.975, -0.125], r: 0.17, ax: [0.99, -0.04, 0.16] },
 ];
 const MOUTH = [0.64, 0.73, 0.15], TDIR = [0.8, -0.12, 0.58];
+const SPOTS = [ // dorsal patches, flank spots and tail dots: [x, y, z, radius]
+  [-0.491, 0.816, 0.016, 0.075], [-0.273, 0.865, -0.025, 0.08], [-0.098, 0.879, -0.047, 0.07],
+  [-0.446, 0.609, 0.178, 0.07], [-0.27, 0.53, 0.235, 0.065], [0.002, 0.569, 0.205, 0.055],
+  [-0.425, 0.57, -0.199, 0.07], [-0.235, 0.574, -0.247, 0.065], [-0.002, 0.62, -0.271, 0.055],
+  [-0.737, 0.626, 0.062, 0.05], [-0.923, 0.475, 0.092, 0.045], [-1.146, 0.388, 0.113, 0.04], [-1.343, 0.425, 0.105, 0.035],
+];
 const CX = -0.42; // horizontal centre of the model
 export const COLORS = {
   green: [0.36, 0.78, 0.33], emerald: [0.16, 0.62, 0.4], mint: [0.45, 0.86, 0.66], turquoise: [0.18, 0.74, 0.76], blue: [0.33, 0.6, 0.92],
@@ -76,6 +82,7 @@ precision mediump float;
 varying vec3 vPos; varying vec3 vN; varying vec3 vW; varying float vPat; varying float vKind;
 uniform vec3 uBody, uCam; uniform float uTime, uBlink, uRainbow, uPupil, uShadowA, uHappy;
 uniform vec3 uE0c, uE0a, uE0l, uE1c, uE1a, uE1l; uniform vec2 uER;
+uniform vec4 uSpots[${SPOTS.length}]; uniform vec3 uMouthC, uFwd, uSide, uUp; uniform float uSmile, uBrow;
 vec3 hue(float h){ return clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.); }
 vec4 eye(vec3 c, vec3 ax, vec3 lk, float r){
   vec3 d = vPos - c; float l = length(d); vec3 n = d / l;
@@ -88,10 +95,15 @@ vec4 eye(vec3 c, vec3 ax, vec3 lk, float r){
   vec3 col = vec3(0.98, 0.98, 0.95);
   float ring = smoothstep(0.55, 0.62, cap); col = mix(vec3(0.78, 0.82, 0.74), col, ring);
   float pr = uPupil;
-  col = mix(col, vec3(0.95, 0.62, 0.15), smoothstep(pr - 0.05, pr - 0.035, k));      // iris
-  col = mix(col, vec3(0.05, 0.05, 0.07), smoothstep(pr - 0.012, pr, k));           // pupil
+  float ir = smoothstep(pr - 0.062, pr - 0.05, k);
+  vec3 iris = mix(vec3(0.82, 0.5, 0.18), vec3(0.52, 0.28, 0.1), smoothstep(pr - 0.05, pr - 0.015, k)); // warm brown, darker inside
+  col = mix(col, vec3(0.36, 0.2, 0.08), ir);                                        // dark rim
+  col = mix(col, iris, smoothstep(pr - 0.056, pr - 0.048, k));
+  col = mix(col, vec3(0.04, 0.03, 0.03), smoothstep(pr - 0.012, pr, k));             // pupil
   vec3 hl = normalize(lk + vec3(0.25, 0.35, 0.25));
-  col = mix(col, vec3(1.), smoothstep(0.986, 0.992, dot(n, hl)));                   // shine
+  col = mix(col, vec3(1.), smoothstep(0.986, 0.992, dot(n, hl)));                   // big glint
+  vec3 hl2 = normalize(lk + vec3(-0.12, -0.16, -0.1));
+  col = mix(col, vec3(1.), smoothstep(0.9955, 0.998, dot(n, hl2)) * 0.85);           // small glint
   return vec4(col, 1.);
 }
 void main(){
@@ -107,6 +119,22 @@ void main(){
   col *= 1. - stripe;
   col = mix(col, belly, clamp(vPat, 0., 1.));
   col = mix(col, dark, clamp(-vPat, 0., 1.));
+  // spots
+  for (int i = 0; i < ${SPOTS.length}; i++) { float d = length(vPos - uSpots[i].xyz) / uSpots[i].w; col = mix(col, base * vec3(0.35, 0.72, 0.78), (1. - smoothstep(0.75, 1., d)) * 0.85); }
+  // smile: a curved line across the snout (frowns when sad)
+  vec3 rm = vPos - uMouthC; float sa = dot(rm, uSide), sb = dot(rm, uUp), sf = dot(rm, uFwd);
+  float curve = uSmile * (sa * sa * 3.2 - 0.03);
+  float line = (1. - smoothstep(0.009, 0.016, abs(sb - curve))) * (1. - smoothstep(0.2, 0.24, abs(sa))) * step(-0.2, sf);
+  col = mix(col, base * vec3(0.28, 0.4, 0.3), line);
+  // brows: thick dark-green arcs over the eyes (tilt with the mood)
+  for (int i = 0; i < 2; i++) {
+    vec3 c = i == 0 ? uE0c : uE1c; vec3 ax = i == 0 ? uE0a : uE1a; float r = i == 0 ? uER.x : uER.y;
+    vec3 d = vPos - c; float l = length(d); vec3 n = d / l;
+    vec3 rt = normalize(cross(vec3(0., 1., 0.), ax)); float u = dot(n, rt) * (i == 0 ? -1. : 1.);
+    float yy = n.y - uBrow * u * 0.35;
+    float b = step(r * 1.02, l) * (1. - step(r * 1.45, l)) * step(0.15, dot(n, ax)) * smoothstep(0.6, 0.66, yy) * (1. - smoothstep(0.8, 0.86, yy)) * (1. - smoothstep(0.55, 0.7, abs(u)));
+    col = mix(col, base * vec3(0.3, 0.45, 0.35), b);
+  }
   if (vKind > 0.5) col = vec3(0.98, 0.45, 0.58);
   else {
     vec4 e = eye(uE0c, uE0a, uE0l, uER.x); if (e.a < 0.5) e = eye(uE1c, uE1a, uE1l, uER.y);
@@ -228,7 +256,7 @@ const bump = (x) => (x <= 0 || x >= 1 ? 0 : Math.sin(x * Math.PI)); // 0→1→0
 function pose(now) {
   const dt = Math.min(0.05, (now - (S.lastT || now)) / 1000); S.lastT = now;
   const tt = now / 1000;
-  const o = { lift: [0, 0, 0, 0], stride: [0, 0, 0, 0], tail: [Math.sin(tt * 0.9) * 0.12, 0.05 + Math.sin(tt * 0.6) * 0.08], head: [...S.head], breath: Math.sin(tt * 2.2), y: 0, sq: 1, blink: 0, happy: 0, pupil: 0.93, tongue: 0, tint: null, shake: 0 };
+  const o = { lift: [0, 0, 0, 0], stride: [0, 0, 0, 0], tail: [Math.sin(tt * 0.9) * 0.12, 0.05 + Math.sin(tt * 0.6) * 0.08], head: [...S.head], breath: Math.sin(tt * 2.2), y: 0, sq: 1, blink: 0, happy: 0, pupil: 0.93, tongue: 0, tint: null, shake: 0, smile: 1, brow: 0 };
   const base = S.base;
   // idle head wandering + independent eye saccades
   if (now > S.nextHead) { S.headT = [rnd(-0.35, 0.35), rnd(-0.12, 0.12), rnd(-0.12, 0.12)]; S.nextHead = now + rnd(1500, 4000); }
@@ -240,7 +268,7 @@ function pose(now) {
   // base states
   if (base === 'sleep') { o.blink = 1; o.head = [0.15, -0.28, 0.1]; S.headT = [0.15, -0.28, 0.1]; o.breath = Math.sin(tt * 1.1) * 1.6; o.sq = 0.94; o.tail = [0.25, 0.5]; }
   else if (base === 'tired' || base === 'hungry') { S.headT = [S.headT[0] * 0.5, -0.22, 0]; o.blink = Math.max(o.blink, base === 'tired' ? 0.45 : 0.15); o.tail = [o.tail[0] * 0.5, -0.15]; o.sq = 0.97; }
-  else if (base === 'sad') { S.headT = [S.headT[0] * 0.4, -0.3, 0.08]; o.tail = [o.tail[0] * 0.4, -0.25]; S.eyeT = [[S.eyeT[0][0] * 0.4, -0.6], [S.eyeT[1][0] * 0.4, -0.6]]; o.blink = Math.max(o.blink, 0.25); }
+  else if (base === 'sad') { o.smile = -0.8; o.brow = -1; S.headT = [S.headT[0] * 0.4, -0.3, 0.08]; o.tail = [o.tail[0] * 0.4, -0.25]; S.eyeT = [[S.eyeT[0][0] * 0.4, -0.6], [S.eyeT[1][0] * 0.4, -0.6]]; o.blink = Math.max(o.blink, 0.25); }
   // walking: diagonal leg pairs, bobbing body, swaying tail
   if (S.walking) {
     S.walkPhase += dt * 11;
@@ -266,9 +294,9 @@ function pose(now) {
         break;
       }
       case 'heart': case 'stroke': o.happy = 1; o.head[2] = Math.sin(t / 260) * 0.18; o.tail = [Math.sin(t / 200) * 0.3, 0.45]; o.sq = 1 + Math.sin(t / 130) * 0.02; o.tint = [1, 0.75, 0.85]; break;
-      case 'angry': o.shake = Math.sin(t / 35) * 0.18; o.tint = [1, 0.55, 0.45]; o.blink = Math.max(o.blink, 0.32); o.tail = [Math.sin(t / 60) * 0.4, -0.1]; break;
-      case 'sad': case 'lose': S.headT = [0, -0.32, 0.1]; o.tail[1] = -0.3; o.blink = Math.max(o.blink, 0.3); S.eyeT = [[0, -0.7], [0, -0.7]]; o.tint = [0.75, 0.85, 1]; break;
-      case 'wow': o.pupil = 0.97; S.headT = [0.2, 0.25, 0]; o.y = bump(Math.min(1, k * 3)) * 0.1; break;
+      case 'angry': o.smile = -0.6; o.brow = 1.3; o.shake = Math.sin(t / 35) * 0.18; o.tint = [1, 0.55, 0.45]; o.blink = Math.max(o.blink, 0.32); o.tail = [Math.sin(t / 60) * 0.4, -0.1]; break;
+      case 'sad': case 'lose': o.smile = -0.8; o.brow = -1; S.headT = [0, -0.32, 0.1]; o.tail[1] = -0.3; o.blink = Math.max(o.blink, 0.3); S.eyeT = [[0, -0.7], [0, -0.7]]; o.tint = [0.75, 0.85, 1]; break;
+      case 'wow': o.smile = 0.4; o.brow = -0.6; o.pupil = 0.97; S.headT = [0.2, 0.25, 0]; o.y = bump(Math.min(1, k * 3)) * 0.1; break;
       case 'thinking': S.headT = [0.1, 0.22, 0.25]; S.eyeT = [[0.3, 0.8], [0.2, 0.8]]; break;
       case 'letter': case 'normal': case 'hello': S.headT = [0.45, 0.05, 0.1]; o.tail = [Math.sin(t / 150) * 0.35, 0.3]; o.happy = 0.4; break;
       case 'tired': case 'hungry': S.headT = [0.2, -0.25, 0]; o.blink = Math.max(o.blink, 0.45); break;
@@ -329,6 +357,10 @@ function frame(now) {
       gl.uniform3fv(U[`uE${i}c`], E.c); gl.uniform3fv(U[`uE${i}a`], E.ax); gl.uniform3fv(U[`uE${i}l`], eyeDir(i, S.eyes[i][0], S.eyes[i][1]));
     });
     gl.uniform2fv(U.uER, [EYES[0].r, EYES[1].r]);
+    gl.uniform4fv(U['uSpots[0]'], SPOTS.flat());
+    { const f = norm(TDIR), sd = norm(cross([0, 1, 0], f)), up = cross(f, sd);
+      gl.uniform3fv(U.uMouthC, MOUTH); gl.uniform3fv(U.uFwd, f); gl.uniform3fv(U.uSide, sd); gl.uniform3fv(U.uUp, up); }
+    gl.uniform1f(U.uSmile, o.smile); gl.uniform1f(U.uBrow, o.brow);
     gl.depthMask(false); draw(D.shadow); gl.depthMask(true);
     draw(D.body);
     if (o.tongue > 0.02) draw(D.tongue);
