@@ -1043,3 +1043,9 @@ b, h1, h2, h3, .ntext { overflow-wrap: break-word; word-break: normal; }
 @keyframes shadowJump { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; } 60% { transform: translateX(-50%) scale(.6); opacity: .5; } }
 .guide-hami { flex: none; margin: -8px 0 -8px -6px; }
 .sheet-h.guide-head { justify-content: flex-start; gap: 6px; }
+
+/* ---------- 3D Хамі ---------- */
+#pet-live.has3d .hami, #pet-live.has3d .pet-shadow { display: none; }
+#pet-live.has3d .pet-tilt { animation: none; transform: none !important; }
+canvas.pet3d { display: block; width: clamp(210px, 64vw, 270px); aspect-ratio: 1.3; height: auto; touch-action: manipulation; }
+.pet-scene .pet-otter.has3d { margin-top: 4px; }

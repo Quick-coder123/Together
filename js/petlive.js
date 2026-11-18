@@ -6,6 +6,7 @@ import { S, today, partnerId, partner } from './store.js';
 import { mealsDone, mealAt, mealsOf } from '/lib/core.js';
 import { itemsBetween } from './derive.js';
 import { hamiSrc, STAGE_SCALE, HAMI_STAGES } from './ui.js';
+import { pet3dMount, pet3dOn, pet3dAct, pet3dWalk, pet3dFace, pet3dLook } from './pet3d.js';
 
 const rnd = (a) => a[Math.floor(Math.random() * a.length)];
 const el = () => document.getElementById('pet-live');
@@ -40,7 +41,9 @@ function place(animate = true) {
   p.style.transition = animate ? '' : 'none';
   // pseudo-3D depth: further back = higher and smaller
   const k = 1 - st.z * 0.2;
-  p.style.transform = `translateX(${st.x}px) translateY(${-st.z * 34}px) scale(${k * st.face}, ${k})`;
+  const f = pet3dOn() ? 1 : st.face; // the 3D model turns around by itself
+  if (pet3dOn()) pet3dFace(st.face);
+  p.style.transform = `translateX(${st.x}px) translateY(${-st.z * 34}px) scale(${k * f}, ${k})`;
   p.style.zIndex = String(2 + Math.round((1 - st.z) * 2));
   const say = p.parentElement?.querySelector('.pet-say');
   if (say) say.style.marginLeft = `${st.x}px`;
@@ -75,6 +78,7 @@ function play(kind, { fps = 8, loop = false, until = 0, then = null, text = '' }
   st.temp = null;
   st.act = { kind, frames: f.names, own: f.own, fps, i: 0, loop, nextFrame: 0, until: until || (loop ? now() + 4000 : 0), then };
   animClass(null);
+  if (pet3dOn() && kind !== 'idle') pet3dAct(kind, loop ? st.act.until - now() : (f.names.length * 1000) / fps);
   if (text) say(text, Math.max((f.names.length * 1000) / fps + 600, 2200));
   return true;
 }
@@ -82,7 +86,8 @@ function play(kind, { fps = 8, loop = false, until = 0, then = null, text = '' }
 export function petDo(pose, ms = 2400, anim = 'a-hop', text = '') {
   st.act = null;
   st.temp = { pose, until: now() + ms };
-  setImg(pose, false); swapFx(); animClass(anim);
+  setImg(pose, false);
+  if (pet3dOn()) { pet3dAct(pose, ms); animClass(anim === 'a-shake' || anim === 'a-melt' ? null : anim === 'a-jump' ? null : anim); } else { swapFx(); animClass(anim); }
   if (text) say(text, Math.min(ms + 600, 3800));
   st.nextAct = now() + ms + 2500 + Math.random() * 3000;
 }
@@ -96,7 +101,7 @@ function walkTo(x, z = Math.random() < 0.6 ? Math.random() : st.z) {
   const ms = Math.max(700, dist * 14);
   p.style.transitionDuration = ms + 'ms';
   st.x = x; place(true);
-  st.walking = true; animClass('walking');
+  st.walking = true; animClass(pet3dOn() ? null : 'walking'); if (pet3dOn()) pet3dWalk(ms);
   play('idle', { fps: 9, loop: true, until: now() + ms });
   setTimeout(() => { st.walking = false; animClass(null); if (Math.random() < 0.5) setTimeout(() => { st.face = 1; place(true); }, 600); }, ms);
 }
@@ -199,6 +204,7 @@ function preload() {
 export function petMount() {
   const p = el(); if (!p) return;
   preload();
+  pet3dMount(p.querySelector('.pet-tilt')).then((ok) => { if (ok) place(false); });
   const R = range(); st.x = Math.min(R.max, Math.max(R.min, st.x));
   place(false);
   if (st.temp && st.temp.until > now()) setImg(st.temp.pose, false);
@@ -213,6 +219,7 @@ export function petMount() {
     stage.addEventListener('pointermove', (e) => {
       const r = stage.getBoundingClientRect(); const t = el()?.querySelector('.pet-tilt'); if (!t) return;
       const dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5;
+      if (pet3dOn()) { const pr = el().getBoundingClientRect(); pet3dLook((e.clientX - pr.left) / pr.width - 0.5, (e.clientY - pr.top) / pr.height - 0.5); return; }
       t.style.transform = `rotateY(${dx * 26 * st.face}deg) rotateX(${-dy * 14}deg)`;
     });
     stage.addEventListener('pointerleave', () => { const t = el()?.querySelector('.pet-tilt'); if (t) t.style.transform = ''; });
