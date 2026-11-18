@@ -211,7 +211,7 @@ function eventForm(e, date) {
       { key: 'date', label: 'Дата', type: 'date', value: e?.date || date || today(), required: true },
       { key: 'time', label: 'Час', type: 'time', value: e?.time },
       { key: 'note', label: 'Нотатка', type: 'textarea', value: e?.note, max: 300 },
-      ...(partnerId() ? [{ key: 'who', label: 'Кому нагадати (для «⏰ Нагадування»)', type: 'select', value: e?.who || '', options: [['', 'Обом'], [S.me.id, 'Мені'], [partnerId(), partner().name]] }] : []),
+      ...(partnerId() ? [{ key: 'who', label: 'Кому нагадати (для «⏰ Нагадування»)', type: 'select', value: e?.who || '', options: [['', 'Обом'], [S.me.id, 'Тільки мені (бачиш лише ти) 🔒'], [partnerId(), partner().name]] }] : []),
     ],
     onSubmit: async (v) => {
       v.who = v.who || null;
@@ -243,7 +243,7 @@ function gcalLink(x) {
 }
 on('calSync', async () => {
   if (!S.room.calKey && !(await act({ type: 'calKey' }, { render: false }))) return;
-  const path = `${location.host}/api/ics?c=${S.room.code}&k=${S.room.calKey}`;
+  const path = `${location.host}/api/ics?c=${S.room.code}&k=${S.room.calKey}&m=${S.me.id}`;
   const https = 'https://' + path, webcal = 'webcal://' + path;
   openSheet(`<div class="sheet-h"><h3>Календар на телефоні</h3></div>
     <p class="muted small" style="margin-top:-4px">Підпишіться один раз — і всі побачення, події, поїздки й нагадування з'являтимуться у звичному календарі самі, з нагадуванням за 2 години.</p>

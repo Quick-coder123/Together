@@ -11,7 +11,7 @@ const CHIPS = [
 ];
 const CAT = { cafe: '☕', restaurant: '🍽️', bar: '🍸', park: '🌳', museum: '🏛️', cinema: '🎬', nature: '🏞️', active: '⚡', home: '🏠', other: '📍' };
 const day = (d) => (d === today() ? 'сьогодні' : fmtDate(d, { weekday: true }));
-const whoName = (w) => (w === 'me' ? 'тобі' : w === 'partner' ? (partner()?.name || 'парі') : 'обом');
+const whoName = (w) => (w === 'me' ? 'тільки тобі 🔒' : w === 'partner' ? (partner()?.name || 'парі') : 'обом');
 
 function label(a) {
   switch (a.type) {

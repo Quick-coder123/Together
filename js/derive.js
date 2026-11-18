@@ -25,7 +25,7 @@ function nextYearly(date, from) {
 export function itemsBetween(room, from, to) {
   const out = [];
   const inRange = (d) => d && d >= from && d <= to;
-  for (const e of room.events) if (inRange(e.date)) out.push({ date: e.date, time: e.time, title: e.title, kind: e.kind || 'event', ref: ['events', e.id] });
+  for (const e of room.events) if (inRange(e.date)) out.push({ date: e.date, time: e.time, title: e.title + (e.kind === 'reminder' && e.who && e.who === e.by ? ' 🔒' : ''), kind: e.kind || 'event', ref: ['events', e.id] });
   for (const p of room.places) if (p.mode === 'plan' && inRange(p.date)) out.push({ date: p.date, time: p.time, title: p.name, kind: 'place', ref: ['places', p.id] });
   for (const b of room.blind) if (inRange(b.date)) out.push({ date: b.date, time: b.time, title: 'Побачення наосліп', kind: 'blind', ref: ['blind', b.id] });
   for (const t of room.trips) {

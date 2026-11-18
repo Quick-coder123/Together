@@ -11,7 +11,9 @@ const ymd = (d) => d.replace(/-/g, '');
 // RFC 5545 line folding (75 octets)
 const fold = (line) => { const out = []; let cur = ''; for (const ch of line) { if (Buffer.byteLength(cur + ch) > 73) { out.push(cur); cur = ' ' + ch; } else cur += ch; } out.push(cur); return out.join('\r\n'); };
 
-export function buildIcs(room, now = Date.now()) {
+export function buildIcs(room, now = Date.now(), mid = '') {
+  // personal reminders only in their author's calendar (old links without &m= get none of them)
+  room = { ...room, events: (room.events || []).filter((e) => !(e.kind === 'reminder' && e.who && e.who === e.by && e.by !== mid)) };
   const today = kyivParts(now).date;
   const items = itemsBetween(room, addDays(today, -60), addDays(today, 366));
   const stamp = utc(now);
@@ -57,5 +59,6 @@ export async function GET(request) {
   const key = String(q.get('k') || '');
   const room = code ? await kv.get(roomKey(code)) : null;
   if (!room || !room.calKey || key !== room.calKey) return new Response('Not found', { status: 404 });
-  return new Response(buildIcs(room), { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'CDN-Cache-Control': 'no-store', 'Content-Disposition': 'inline; filename="hamelyky.ics"' } });
+  const m = String(q.get('m') || '').slice(0, 40);
+  return new Response(buildIcs(room, Date.now(), room.members?.[m] ? m : ''), { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'CDN-Cache-Control': 'no-store', 'Content-Disposition': 'inline; filename="hamelyky.ics"' } });
 }

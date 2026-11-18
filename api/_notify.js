@@ -1,7 +1,7 @@
 // Push notifications (Web Push). Not a route: files starting with "_" are helpers.
 // VAPID keys are created once and kept in Redis, so nothing has to be configured by hand.
 import * as webpush from 'web-push';
-import { addDays, dayDiff, streakOf } from '../lib/core.js';
+import { addDays, dayDiff, streakOf, isPrivateFor } from '../lib/core.js';
 
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -113,6 +113,7 @@ export function messagesFor(action, before, after, mid) {
       if (!it || it.by !== mid) return [];
       if (a.col === 'blind') return out(`🎭 ${me} планує для тебе побачення наосліп${it.date ? ' на ' + fmtDay(it.date) : ''}!${it.hint ? ' Підказка: ' + it.hint : ''}`, { tag: 'blind' });
       if (a.col === 'chores' && it.who === pid) return out(`🧹 ${me} просить: «${it.text}»`, { tag: 'chore' });
+      if (a.col === 'events' && it.kind === 'reminder' && it.who === mid) return []; // personal reminder — the partner doesn't know about it
       if (a.col === 'events') return out(`📅 ${me} додає в календар: ${it.title}${it.date ? ' — ' + fmtDay(it.date) + (it.time ? ' о ' + it.time : '') : ''}`, { tag: 'event' });
       if (a.col === 'dates') return out(`🎉 Нова важлива дата: ${it.title} (${fmtDay(it.date)})`, { tag: 'date' });
       if (a.col === 'places' && it.mode === 'plan') return out(`📍 ${me} планує: ${it.name}${it.date ? ' — ' + fmtDay(it.date) : ''}`, { tag: 'place' });
@@ -178,7 +179,7 @@ export function digestFor(room, mid, today) {
   const lines = [];
   const name = (id) => room.members[id]?.name || '';
   const inDays = (d) => (d ? dayDiff(today, d) : null);
-  for (const e of room.events || []) if (e.date === today) lines.push(`📅 ${e.title}${e.time ? ' о ' + e.time : ''}`);
+  for (const e of room.events || []) if (e.date === today && !isPrivateFor(e, mid)) lines.push(`📅 ${e.title}${e.time ? ' о ' + e.time : ''}`);
   for (const p of room.places || []) if (p.mode === 'plan' && p.date === today && !p.visited) lines.push(`📍 ${p.name}${p.time ? ' о ' + p.time : ''}`);
   for (const b of room.blind || []) {
     if (b.date === today) lines.push(b.by === mid ? '🎭 Сьогодні твоє побачення наосліп — не забудь!' : `🎭 Сьогодні побачення-сюрприз${b.time ? ' о ' + b.time : ''}! Організатор: ${name(b.by)}`);

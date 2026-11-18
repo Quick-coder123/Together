@@ -4,7 +4,7 @@
 // it returns proposed actions, the app shows them as cards and adds only what the user confirms.
 import { kv, roomKey } from './_notify.js';
 import { itemsBetween } from '../js/derive.js';
-import { addDays } from '../lib/core.js';
+import { addDays, withoutPrivate } from '../lib/core.js';
 import { kyivParts } from './_remind.js';
 import { geminiJson } from './_gemini.js';
 
@@ -18,6 +18,7 @@ const isTime = (v) => typeof v === 'string' && /^\d{2}:\d{2}$/.test(v);
 const WD = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', "п'ятниця", 'субота'];
 
 function context(room, mid, now) {
+  room = withoutPrivate(room, mid);
   const { date: today, hour, minute } = kyivParts(now);
   const pid = Object.keys(room.members).find((x) => x !== mid);
   const me = room.members[mid]?.name, partner = pid ? room.members[pid]?.name : null;
