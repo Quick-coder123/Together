@@ -1064,3 +1064,5 @@ canvas.pet3d { display: block; width: clamp(210px, 64vw, 270px); aspect-ratio: 1
 @keyframes recRing { to { box-shadow: 0 0 0 12px rgba(229,72,77,0); } }
 .wh-msg.me.voice { font-style: normal; }
 .wh-auto b { color: #2F9C84; }
+.wd-preview .pet-otter.has3d .hami { display: none; }
+.wd-preview canvas.pet3d { width: clamp(200px, 60vw, 250px); margin: 0 auto; }

@@ -6,7 +6,7 @@ import { S, today, partnerId, partner } from './store.js';
 import { mealsDone, mealAt, mealsOf } from '/lib/core.js';
 import { itemsBetween } from './derive.js';
 import { hamiSrc, STAGE_SCALE, HAMI_STAGES } from './ui.js';
-import { pet3dMount, pet3dOn, pet3dAct, pet3dWalk, pet3dFace, pet3dLook } from './pet3d.js';
+import { pet3dMount, pet3dOn, pet3dAct, pet3dWalk, pet3dFace, pet3dLook, pet3dCapable } from './pet3d.js';
 
 const rnd = (a) => a[Math.floor(Math.random() * a.length)];
 const el = () => document.getElementById('pet-live');
@@ -30,6 +30,7 @@ const st = { x: 0, z: 0, face: 1, act: null, temp: null, bubbleUntil: 0, text: '
 
 /* ---------- drawing ---------- */
 function setImg(name, own) {
+  if (pet3dCapable()) return; // the 3D model is shown — don't download sprite frames
   const p = el(); const img = p?.querySelector('img'); if (!img) return;
   const src = hamiSrc(name);
   if (!img.src.endsWith(src)) img.src = src;
@@ -196,7 +197,7 @@ function partnerNews() {
 /* ---------- mount after every page render ---------- */
 let preloaded = false;
 function preload() {
-  if (preloaded) return; preloaded = true;
+  if (preloaded || pet3dCapable()) return; preloaded = true;
   const names = ['wave1', 'wave2', 'wave3', 'wave4', 'wave5', 'jump1', 'jump2', 'jump3', 'jump4', 'tongue1', 'tongue2', 'tongue3', 'tongue4', 'tongue5', 'zz1', 'zz2', 'zz3', 'zz4', 'babywave1', 'babywave2', 'babywave3', 'babywave4', 'eat', 'heart', 'great', 'joy', 'angry', 'tired', 'hungry', 'sad', 'normal', 'wow', 'thinking', 'letter'];
   for (const s of Object.values(IDLE)) for (let i = 1; i <= 5; i++) names.push(s + i);
   for (const n of names) { const im = new Image(); im.src = hamiSrc(n); }
@@ -204,7 +205,7 @@ function preload() {
 export function petMount() {
   const p = el(); if (!p) return;
   preload();
-  pet3dMount(p.querySelector('.pet-tilt')).then((ok) => { if (ok) place(false); });
+  pet3dMount(p.querySelector('.pet-tilt')).then((ok) => { if (ok) place(false); else if (!pet3dCapable()) p.classList.remove('has3d'); });
   const R = range(); st.x = Math.min(R.max, Math.max(R.min, st.x));
   place(false);
   if (st.temp && st.temp.until > now()) setImg(st.temp.pose, false);

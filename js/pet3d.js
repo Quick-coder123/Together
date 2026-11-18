@@ -3,6 +3,7 @@
 // the tail and the head, and the vertex shader bends them (walk cycle, wave, tail sway/curl, head turns).
 // Eyes and pupils are painted in the fragment shader, so each eye can roll on its own — like a real chameleon.
 // If WebGL is unavailable, nothing happens and the sprite version stays.
+import { buildAcc } from './pet3d-acc.js';
 
 const FEET = [[0.335, 0.301], [0.385, -0.298], [-0.316, 0.333], [-0.39, -0.328]]; // front +z (near camera), front -z, back +z, back -z
 const HEAD = [0.12, 0.62, 0.0];
@@ -44,23 +45,23 @@ function lookAt(e, c, up) {
 
 /* ---------------- shaders ---------------- */
 const VS = `
-attribute vec3 aPos; attribute vec3 aNorm; attribute vec4 aLeg; attribute vec4 aMisc; // misc: tail, head, pattern, kind (0 body,1 tongue,2 shadow)
+attribute vec3 aPos; attribute vec3 aNorm; attribute vec4 aLeg; attribute vec4 aMisc; attribute vec3 aCol; // misc: tail, head, pattern, kind (0 body,1 tongue,2 shadow,3 accessory)
 uniform mat4 uProj, uView, uModel, uShadowM; uniform vec3 uNS;
 uniform vec4 uLift, uStride; uniform vec2 uTail; uniform vec3 uHead; uniform float uBreath, uHeadBig, uTongue, uShadow;
 uniform vec3 uMouth, uTdir, uTside, uTup;
-varying vec3 vPos; varying vec3 vN; varying vec3 vW; varying float vPat; varying float vKind;
+varying vec3 vPos; varying vec3 vN; varying vec3 vW; varying float vPat; varying float vKind; varying vec3 vCol;
 const vec3 H = vec3(${HEAD.join(',')}); const vec3 T = vec3(${TAIL.join(',')});
 mat3 rx(float a){ float c=cos(a), s=sin(a); return mat3(1.,0.,0., 0.,c,s, 0.,-s,c); }
 mat3 ry(float a){ float c=cos(a), s=sin(a); return mat3(c,0.,-s, 0.,1.,0., s,0.,c); }
 mat3 rz(float a){ float c=cos(a), s=sin(a); return mat3(c,s,0., -s,c,0., 0.,0.,1.); }
 void main(){
-  vKind = aMisc.w; vPat = aMisc.z;
-  if (aMisc.w > 1.5) { // ground shadow
+  vKind = aMisc.w; vPat = aMisc.z; vCol = aCol;
+  if (abs(aMisc.w - 2.) < 0.5) { // ground shadow
     vec4 w = uShadowM * vec4(aPos.x * 1.25 * uShadow, 0.004, aPos.z * 0.62 * uShadow, 1.);
     vPos = aPos; vN = vec3(0.,1.,0.); vW = w.xyz; gl_Position = uProj * uView * w; return;
   }
   vec3 p = aPos; vec3 n = aNorm;
-  if (aMisc.w > 0.5) { p = uMouth + uTdir * (aPos.x * uTongue) + uTside * aPos.y + uTup * aPos.z; n = normalize(uTside * aNorm.y + uTup * aNorm.z + uTdir * aNorm.x); }
+  if (abs(aMisc.w - 1.) < 0.5) { p = uMouth + uTdir * (aPos.x * uTongue) + uTside * aPos.y + uTup * aPos.z; n = normalize(uTside * aNorm.y + uTup * aNorm.z + uTdir * aNorm.x); }
   vPos = aPos;
   // legs
   p.y += dot(aLeg, uLift); p.x += dot(aLeg, uStride);
@@ -79,7 +80,7 @@ void main(){
 }`;
 const FS = `
 precision mediump float;
-varying vec3 vPos; varying vec3 vN; varying vec3 vW; varying float vPat; varying float vKind;
+varying vec3 vPos; varying vec3 vN; varying vec3 vW; varying float vPat; varying float vKind; varying vec3 vCol;
 uniform vec3 uBody, uCam; uniform float uTime, uBlink, uRainbow, uPupil, uShadowA, uHappy;
 uniform vec3 uE0c, uE0a, uE0l, uE1c, uE1a, uE1l; uniform vec2 uER;
 uniform vec4 uSpots[${SPOTS.length}]; uniform vec3 uMouthC, uFwd, uSide, uUp; uniform float uSmile, uBrow;
@@ -107,7 +108,7 @@ vec4 eye(vec3 c, vec3 ax, vec3 lk, float r){
   return vec4(col, 1.);
 }
 void main(){
-  if (vKind > 1.5) { float r = length(vPos.xz); float a = (1. - smoothstep(0.2, 1., r)) * 0.3 * uShadowA; gl_FragColor = vec4(0., 0., 0., a); return; }
+  if (abs(vKind - 2.) < 0.5) { float r = length(vPos.xz); float a = (1. - smoothstep(0.2, 1., r)) * 0.3 * uShadowA; gl_FragColor = vec4(0., 0., 0., a); return; }
   vec3 N = normalize(vN); vec3 V = normalize(uCam - vW);
   if (dot(N, V) < 0.) N = -N;
   vec3 base = uBody;
@@ -135,7 +136,8 @@ void main(){
     float b = step(r * 1.02, l) * (1. - step(r * 1.45, l)) * step(0.15, dot(n, ax)) * smoothstep(0.66, 0.7, yy) * (1. - smoothstep(0.77, 0.81, yy)) * (1. - smoothstep(0.45, 0.6, abs(u)));
     col = mix(col, base * vec3(0.42, 0.55, 0.45), b * 0.85);
   }
-  if (vKind > 0.5) col = vec3(0.98, 0.45, 0.58);
+  if (vKind > 2.5) col = vCol;
+  else if (vKind > 0.5) col = vec3(0.98, 0.45, 0.58);
   else {
     vec4 e = eye(uE0c, uE0a, uE0l, uER.x); if (e.a < 0.5) e = eye(uE1c, uE1a, uE1l, uER.y);
     if (e.a > 0.5) col = e.rgb;
@@ -204,9 +206,9 @@ function shadowMesh() {
 }
 
 /* ---------------- state ---------------- */
-let gl, prog, canvas, U = {}, D = null, raf = 0, failed = false, loading = null;
+let gl, prog, canvas, U = {}, D = null, raf = 0, failed = false, loading = null, io = null;
 const S = {
-  stage: 'adult', color: 'green', base: '', mood: '',
+  stage: 'adult', color: 'green', base: '', mood: '', acc: 'none',
   face: 1, fv: 1, walking: false, walkPhase: 0,
   act: null, actT0: 0, actMs: 0,
   look: null, lookUntil: 0, eyes: [[0, 0], [0, 0]], eyeT: [[0, 0], [0, 0]], nextSacc: [0, 0],
@@ -214,9 +216,19 @@ const S = {
 };
 
 function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
-function buffers(P, N, LEG, MISC, I) {
+function buffers(P, N, LEG, MISC, I, COL = null) {
   const mk = (data, target = gl.ARRAY_BUFFER) => { const b = gl.createBuffer(); gl.bindBuffer(target, b); gl.bufferData(target, data, gl.STATIC_DRAW); return b; };
-  return { p: mk(P), n: mk(N), leg: mk(LEG), misc: mk(MISC), i: mk(I, gl.ELEMENT_ARRAY_BUFFER), count: I.length };
+  return { p: mk(P), n: mk(N), leg: mk(LEG), misc: mk(MISC), col: COL ? mk(COL) : null, i: mk(I, gl.ELEMENT_ARRAY_BUFFER), count: I.length };
+}
+const ACC = {}; // id → buffers (built on first use)
+function accBuffers(id) {
+  if (!id || id === 'none') return null;
+  if (id in ACC) return ACC[id];
+  const m = buildAcc(id);
+  if (!m) return (ACC[id] = null);
+  const n = m.P.length / 3, misc = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) { misc[i * 4 + 1] = m.W[i]; misc[i * 4 + 3] = 3; }
+  return (ACC[id] = buffers(new Float32Array(m.P), new Float32Array(m.N), new Float32Array(n * 4), misc, new Uint16Array(m.I), new Float32Array(m.C)));
 }
 async function init() {
   canvas = document.createElement('canvas');
@@ -246,6 +258,8 @@ async function init() {
 function draw(b) {
   const at = (name, buf, size) => { const l = gl.getAttribLocation(prog, name); if (l < 0) return; gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, size, gl.FLOAT, false, 0, 0); };
   at('aPos', b.p, 3); at('aNorm', b.n, 3); at('aLeg', b.leg, 4); at('aMisc', b.misc, 4);
+  const lc = gl.getAttribLocation(prog, 'aCol');
+  if (lc >= 0) { if (b.col) at('aCol', b.col, 3); else { gl.disableVertexAttribArray(lc); gl.vertexAttrib3f(lc, 0, 0, 0); } }
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.i);
   gl.drawElements(gl.TRIANGLES, b.count, gl.UNSIGNED_SHORT, 0);
 }
@@ -321,10 +335,12 @@ function eyeDir(i, u, v) {
   return d;
 }
 
+let visible = true, lastDraw = 0;
 function frame(now) {
   raf = 0;
-  if (!canvas?.isConnected || failed) return;
-  if (!document.hidden) {
+  if (!canvas?.isConnected || failed || !visible) return; // resumes when it is back on screen
+  if (!document.hidden && now - lastDraw > 31) { // ~30 fps is plenty for a pet and saves battery
+    lastDraw = now;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
     if (w && h && (canvas.width !== w || canvas.height !== h)) { canvas.width = w; canvas.height = h; }
@@ -332,7 +348,7 @@ function frame(now) {
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const o = pose(now);
     // facing: flip through a front view so the turn reads as 3D
-    const dt = Math.min(0.05, 0.016);
+    const dt = 0.033;
     S.fv += Math.sign(S.face - S.fv) * Math.min(Math.abs(S.face - S.fv), dt * 9);
     const sx = S.fv, sgn = sx < 0 ? -1 : 1;
     const yaw = sgn * (-0.32 - 1.1 * (1 - Math.abs(sx))) + o.shake;
@@ -373,24 +389,36 @@ function frame(now) {
     gl.uniform1f(U.uSmile, o.smile); gl.uniform1f(U.uBrow, o.brow);
     gl.depthMask(false); draw(D.shadow); gl.depthMask(true);
     draw(D.body);
+    const acc = accBuffers(S.acc); if (acc) draw(acc);
     if (o.tongue > 0.02) draw(D.tongue);
   }
   raf = requestAnimationFrame(frame);
 }
 
 /* ---------------- public API ---------------- */
-export const pet3dOn = () => !!(D && !failed && canvas?.isConnected);
+export const pet3dOn = () => !!(D && !failed && canvas?.isConnected && canvas.closest('#pet-live'));
+/** Can this device show the 3D pet at all? (checked once, cheaply) */
+let capable;
+export function pet3dCapable() { if (capable === undefined) { try { capable = !failed && !!document.createElement('canvas').getContext('webgl'); } catch { capable = false; } } return capable && !failed; }
 /** Put the 3D canvas into the pet card (keeps one GL context across page re-renders). */
+let pinned = null;
+/** While a sheet (the wardrobe) shows Хамі, page re-renders must not take him away. */
+export function pet3dPin(host) { pinned = host || null; }
 export async function pet3dMount(host) {
   if (failed || !host) return false;
-  const p = host.closest('#pet-live');
-  if (p) { S.stage = p.dataset.stage || 'adult'; S.base = p.dataset.base || ''; S.mood = p.dataset.mood || ''; S.color = p.dataset.color || 'green'; }
+  if (pinned && pinned !== host && pinned.isConnected) return false;
+  const p = host.closest('.pet-otter');
+  if (p) { S.stage = p.dataset.stage || 'adult'; S.base = p.dataset.base || ''; S.mood = p.dataset.mood || ''; S.color = p.dataset.color || 'green'; S.acc = p.dataset.acc || 'none'; }
   try {
     if (!D) { loading ||= init(); await loading; }
-  } catch (e) { failed = true; console.warn('pet3d off:', e.message); return false; }
+  } catch (e) { failed = true; console.warn('pet3d off:', e.message); document.querySelectorAll('.pet-otter.has3d').forEach((x) => x.classList.remove('has3d')); return false; }
   if (!host.isConnected) return false;
   if (canvas.parentElement !== host) host.appendChild(canvas);
   p?.classList.add('has3d');
+  if (!io && 'IntersectionObserver' in window) {
+    io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible && !raf) raf = requestAnimationFrame(frame); });
+    io.observe(canvas);
+  }
   if (!raf) raf = requestAnimationFrame(frame);
   return true;
 }
