@@ -61,7 +61,8 @@ const RULES = `Ти — Шептунчик, добрий і трохи грай�
 - "dream": спільна мрія {title, note}
 - "important": важлива дата {title, date, yearly}
 - "note": записка партнеру {text}
-Поверни ЛИШЕ JSON: {"reply":"…","actions":[…]} (actions може бути порожнім).`;
+Якщо прийшло голосове повідомлення — спершу точно розпізнай українську (або іншу) мову і запиши дослівно, що сказано, у поле "heard"; далі дій так само, як із текстом. Якщо в записі нічого не чути або це не прохання — поверни "heard":"" і попроси повторити.
+Поверни ЛИШЕ JSON: {"heard":"…(лише для голосу)","reply":"…","actions":[…]} (actions може бути порожнім).`;
 
 async function gemini(contents) {
   return geminiJson({ systemInstruction: { parts: [{ text: RULES }] }, contents, generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } });
@@ -102,7 +103,9 @@ export async function POST(request) {
   const code = String(body?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   const mid = String(body?.member || '').slice(0, 40);
   const text = str(body?.text, 800);
-  if (!text) return json({ error: 'Напиши, що зробити' }, 400);
+  // voice: 16 kHz mono WAV recorded in the app, base64 (≤ ~45 s)
+  const audio = typeof body?.audio === 'string' && body.audio.length < 2_000_000 && /^[A-Za-z0-9+/=]+$/.test(body.audio.slice(0, 200)) ? body.audio : '';
+  if (!text && !audio) return json({ error: 'Напиши або скажи, що зробити' }, 400);
   try {
     const room = await kv.get(roomKey(code));
     if (!room || !room.members?.[mid]) return json({ error: 'Пару не знайдено' }, 403);
@@ -110,9 +113,10 @@ export async function POST(request) {
     if ((await kv.incr(`whisper:${code}:${kyivParts(Date.now()).date}`, 172800)) > DAILY_LIMIT) return json({ error: 'Шептунчик на сьогодні втомився 😴 Повертайся завтра!' }, 429);
     const history = (Array.isArray(body.history) ? body.history : []).slice(-6)
       .map((h) => ({ role: h?.role === 'model' ? 'model' : 'user', parts: [{ text: str(h?.text, 600) }] })).filter((h) => h.parts[0].text);
-    const contents = [{ role: 'user', parts: [{ text: 'Дані пари:\n' + context(room, mid, Date.now()) }] }, { role: 'model', parts: [{ text: '{"reply":"Зрозумів, слухаю 🦎","actions":[]}' }] }, ...history, { role: 'user', parts: [{ text }] }];
+    const contents = [{ role: 'user', parts: [{ text: 'Дані пари:\n' + context(room, mid, Date.now()) }] }, { role: 'model', parts: [{ text: '{"reply":"Зрозумів, слухаю 🦎","actions":[]}' }] }, ...history, { role: 'user', parts: audio ? [{ inline_data: { mime_type: 'audio/wav', data: audio } }, { text: 'Це голосове повідомлення від мене. Розпізнай і виконай.' }] : [{ text }] }];
     const r = await gemini(contents);
-    return json({ reply: str(r.reply, 600) || 'Готово!', actions: cleanActions(r.actions) });
+    if (audio) console.log('whisper voice', { kb: Math.round(audio.length * 0.75 / 1024), heard: str(r.heard, 80) });
+    return json({ heard: audio ? str(r.heard, 800) : undefined, reply: str(r.reply, 600) || 'Готово!', actions: cleanActions(r.actions) });
   } catch (e) {
     console.error('whisper', e.message);
     const busy = /high demand|overloaded|503|429|UNAVAILABLE/i.test(e.message);

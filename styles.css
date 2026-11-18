@@ -1052,3 +1052,15 @@ canvas.pet3d { display: block; width: clamp(210px, 64vw, 270px); aspect-ratio: 1
 /* buttons always above the (larger) 3D canvas */
 .pet-scene .tap-pill, .pet-scene > .meals, .pet-scene .wardrobe, .pet-scene .hungry-tag { z-index: 8; }
 .pet-say { z-index: 9; }
+
+/* ---------- Шептунчик: voice ---------- */
+.wh-input .icon-btn.mic { background: var(--card2); color: inherit; }
+.wh-input .wh-rec-dot, .wh-input .wh-rec-t { display: none; }
+.wh-input.rec .wh-rec-dot { display: block; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; flex: none; animation: recPulse 1s ease-in-out infinite; }
+.wh-input.rec .wh-rec-t { display: block; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; flex: none; }
+.wh-input.rec input { border-color: rgba(229,72,77,.55); }
+.wh-input.rec .icon-btn.mic { background: #E5484D; color: #fff; box-shadow: 0 0 0 0 rgba(229,72,77,.5); animation: recRing 1.2s ease-out infinite; }
+@keyframes recPulse { 50% { opacity: .3; } }
+@keyframes recRing { to { box-shadow: 0 0 0 12px rgba(229,72,77,0); } }
+.wh-msg.me.voice { font-style: normal; }
+.wh-auto b { color: #2F9C84; }
