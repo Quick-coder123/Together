@@ -95,10 +95,10 @@ vec4 eye(vec3 c, vec3 ax, vec3 lk, float r){
   vec3 col = vec3(0.98, 0.98, 0.95);
   float ring = smoothstep(0.55, 0.62, cap); col = mix(vec3(0.78, 0.82, 0.74), col, ring);
   float pr = uPupil;
-  float ir = smoothstep(pr - 0.062, pr - 0.05, k);
-  vec3 iris = mix(vec3(0.82, 0.5, 0.18), vec3(0.52, 0.28, 0.1), smoothstep(pr - 0.05, pr - 0.015, k)); // warm brown, darker inside
-  col = mix(col, vec3(0.36, 0.2, 0.08), ir);                                        // dark rim
-  col = mix(col, iris, smoothstep(pr - 0.056, pr - 0.048, k));
+  float ir = smoothstep(pr - 0.125, pr - 0.11, k);
+  vec3 iris = mix(vec3(0.85, 0.55, 0.2), vec3(0.5, 0.27, 0.09), smoothstep(pr - 0.1, pr - 0.01, k)); // warm brown, darker inside
+  col = mix(col, vec3(0.32, 0.18, 0.07), ir);                                       // dark rim
+  col = mix(col, iris, smoothstep(pr - 0.115, pr - 0.1, k));
   col = mix(col, vec3(0.04, 0.03, 0.03), smoothstep(pr - 0.012, pr, k));             // pupil
   vec3 hl = normalize(lk + vec3(0.25, 0.35, 0.25));
   col = mix(col, vec3(1.), smoothstep(0.986, 0.992, dot(n, hl)));                   // big glint
@@ -123,8 +123,8 @@ void main(){
   for (int i = 0; i < ${SPOTS.length}; i++) { float d = length(vPos - uSpots[i].xyz) / uSpots[i].w; col = mix(col, base * vec3(0.35, 0.72, 0.78), (1. - smoothstep(0.75, 1., d)) * 0.85); }
   // smile: a curved line across the snout (frowns when sad)
   vec3 rm = vPos - uMouthC; float sa = dot(rm, uSide), sb = dot(rm, uUp), sf = dot(rm, uFwd);
-  float curve = uSmile * (sa * sa * 3.2 - 0.03);
-  float line = (1. - smoothstep(0.009, 0.016, abs(sb - curve))) * (1. - smoothstep(0.2, 0.24, abs(sa))) * step(-0.2, sf);
+  float curve = uSmile * (sa * sa * 9. - 0.012) - 0.02;
+  float line = (1. - smoothstep(0.006, 0.011, abs(sb - curve))) * (1. - smoothstep(0.065, 0.085, abs(sa))) * step(-0.08, sf);
   col = mix(col, base * vec3(0.28, 0.4, 0.3), line);
   // brows: thick dark-green arcs over the eyes (tilt with the mood)
   for (int i = 0; i < 2; i++) {
@@ -132,8 +132,8 @@ void main(){
     vec3 d = vPos - c; float l = length(d); vec3 n = d / l;
     vec3 rt = normalize(cross(vec3(0., 1., 0.), ax)); float u = dot(n, rt) * (i == 0 ? -1. : 1.);
     float yy = n.y - uBrow * u * 0.35;
-    float b = step(r * 1.02, l) * (1. - step(r * 1.45, l)) * step(0.15, dot(n, ax)) * smoothstep(0.6, 0.66, yy) * (1. - smoothstep(0.8, 0.86, yy)) * (1. - smoothstep(0.55, 0.7, abs(u)));
-    col = mix(col, base * vec3(0.3, 0.45, 0.35), b);
+    float b = step(r * 1.02, l) * (1. - step(r * 1.45, l)) * step(0.15, dot(n, ax)) * smoothstep(0.66, 0.7, yy) * (1. - smoothstep(0.77, 0.81, yy)) * (1. - smoothstep(0.45, 0.6, abs(u)));
+    col = mix(col, base * vec3(0.42, 0.55, 0.45), b * 0.85);
   }
   if (vKind > 0.5) col = vec3(0.98, 0.45, 0.58);
   else {
@@ -256,11 +256,11 @@ const bump = (x) => (x <= 0 || x >= 1 ? 0 : Math.sin(x * Math.PI)); // 0→1→0
 function pose(now) {
   const dt = Math.min(0.05, (now - (S.lastT || now)) / 1000); S.lastT = now;
   const tt = now / 1000;
-  const o = { lift: [0, 0, 0, 0], stride: [0, 0, 0, 0], tail: [Math.sin(tt * 0.9) * 0.12, 0.05 + Math.sin(tt * 0.6) * 0.08], head: [...S.head], breath: Math.sin(tt * 2.2), y: 0, sq: 1, blink: 0, happy: 0, pupil: 0.93, tongue: 0, tint: null, shake: 0, smile: 1, brow: 0 };
+  const o = { lift: [0, 0, 0, 0], stride: [0, 0, 0, 0], tail: [Math.sin(tt * 0.9) * 0.12, 0.05 + Math.sin(tt * 0.6) * 0.08], head: [...S.head], breath: Math.sin(tt * 2.2), y: 0, sq: 1, blink: 0, happy: 0, pupil: 0.86, tongue: 0, tint: null, shake: 0, smile: 1, brow: 0 };
   const base = S.base;
   // idle head wandering + independent eye saccades
   if (now > S.nextHead) { S.headT = [rnd(-0.35, 0.35), rnd(-0.12, 0.12), rnd(-0.12, 0.12)]; S.nextHead = now + rnd(1500, 4000); }
-  for (let e = 0; e < 2; e++) if (now > S.nextSacc[e]) { S.eyeT[e] = [rnd(-0.8, 0.8), rnd(-0.6, 0.6)]; S.nextSacc[e] = now + rnd(500, 2600); }
+  for (let e = 0; e < 2; e++) if (now > S.nextSacc[e]) { S.eyeT[e] = Math.random() < 0.15 ? [rnd(-0.9, 0.9), rnd(-0.6, 0.6)] : [rnd(-0.25, 0.25), rnd(-0.2, 0.2)]; S.nextSacc[e] = now + rnd(700, 2600); }
   if (S.look && now < S.lookUntil) { S.headT = [S.look[0] * 0.5, -S.look[1] * 0.25, 0]; S.eyeT = [[S.look[0], -S.look[1]], [S.look[0], -S.look[1]]]; }
   // blinking
   if (!S.blinkAt) S.blinkAt = now + rnd(2000, 5000);
@@ -296,7 +296,7 @@ function pose(now) {
       case 'heart': case 'stroke': o.happy = 1; o.head[2] = Math.sin(t / 260) * 0.18; o.tail = [Math.sin(t / 200) * 0.3, 0.45]; o.sq = 1 + Math.sin(t / 130) * 0.02; o.tint = [1, 0.75, 0.85]; break;
       case 'angry': o.smile = -0.6; o.brow = 1.3; o.shake = Math.sin(t / 35) * 0.18; o.tint = [1, 0.55, 0.45]; o.blink = Math.max(o.blink, 0.32); o.tail = [Math.sin(t / 60) * 0.4, -0.1]; break;
       case 'sad': case 'lose': o.smile = -0.8; o.brow = -1; S.headT = [0, -0.32, 0.1]; o.tail[1] = -0.3; o.blink = Math.max(o.blink, 0.3); S.eyeT = [[0, -0.7], [0, -0.7]]; o.tint = [0.75, 0.85, 1]; break;
-      case 'wow': o.smile = 0.4; o.brow = -0.6; o.pupil = 0.97; S.headT = [0.2, 0.25, 0]; o.y = bump(Math.min(1, k * 3)) * 0.1; break;
+      case 'wow': o.smile = 0.4; o.brow = -0.6; o.pupil = 0.93; S.headT = [0.2, 0.25, 0]; o.y = bump(Math.min(1, k * 3)) * 0.1; break;
       case 'thinking': S.headT = [0.1, 0.22, 0.25]; S.eyeT = [[0.3, 0.8], [0.2, 0.8]]; break;
       case 'letter': case 'normal': case 'hello': S.headT = [0.45, 0.05, 0.1]; o.tail = [Math.sin(t / 150) * 0.35, 0.3]; o.happy = 0.4; break;
       case 'tired': case 'hungry': S.headT = [0.2, -0.25, 0]; o.blink = Math.max(o.blink, 0.45); break;
@@ -310,10 +310,15 @@ function pose(now) {
   for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) S.eyes[i][j] = lerp(S.eyes[i][j], S.eyeT[i][j], ee);
   return o;
 }
+let CAM_M = [0, 1, 4]; // camera position in model space (updated every frame)
 function eyeDir(i, u, v) {
-  const ax = EYES[i].ax, right = norm(cross([0, 1, 0], ax)), up = cross(ax, right);
-  const s = S.fv < 0 ? -1 : 1; // when mirrored, "look right" is the other way
-  return norm([ax[0] + right[0] * u * 0.55 * s * (i ? 1 : -1) + up[0] * v * 0.5, ax[1] + right[1] * u * 0.55 * s + up[1] * v * 0.5, ax[2] + right[2] * u * 0.55 * s * (i ? 1 : -1) + up[2] * v * 0.5]);
+  const E = EYES[i], ax = E.ax, right = norm(cross([0, 1, 0], ax)), up = cross(ax, right);
+  // look at the viewer, then add the saccade / finger offset
+  const toCam = norm(CAM_M.map((c, k) => c - E.c[k]));
+  let d = norm(toCam.map((c, k) => c + right[k] * u * 0.55 + up[k] * v * 0.45));
+  // keep the pupil inside the visible part of the eye
+  for (let it = 0; it < 3; it++) { const k = d[0] * ax[0] + d[1] * ax[1] + d[2] * ax[2]; if (k >= 0.8) break; d = norm(d.map((c, j) => c + ax[j] * (0.8 - k) * 1.5)); }
+  return d;
 }
 
 function frame(now) {
@@ -340,6 +345,11 @@ function frame(now) {
     const M = mul(mul(mul(trans(0, o.y * ks, 0), rotY(yaw)), scal(sgn * flat * ks, ks * o.sq, ks * (2 - o.sq))), trans(-CX, 0, 0));
     const MS = mul(mul(rotY(yaw), scal(sgn * flat * ks, 1, ks)), trans(-CX, 0, 0));
     gl.uniformMatrix4fv(U.uModel, false, M); gl.uniformMatrix4fv(U.uShadowM, false, MS);
+    { // camera → model space (undo translate, yaw, scale, centre)
+      const px = camE[0], py = camE[1] - o.y * ks, pz = camE[2], c = Math.cos(-yaw), s = Math.sin(-yaw);
+      const rx = px * c + pz * s, rz = -px * s + pz * c;
+      CAM_M = [rx / (sgn * flat * ks) + CX, py / (ks * o.sq), rz / (ks * (2 - o.sq))];
+    }
     gl.uniform3fv(U.uNS, [1 / (flat * flat), 1, 1]);
     gl.uniform3fv(U.uCam, camE);
     gl.uniform4fv(U.uLift, o.lift); gl.uniform4fv(U.uStride, o.stride);
