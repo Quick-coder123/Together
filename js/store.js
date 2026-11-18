@@ -230,7 +230,7 @@ export function openForm(cfg) {
     return `<label class="field"><span>${esc(f.label)}${f.required ? ' *' : ''}</span>${input}</label>`;
   };
   const sheet = openSheet(`
-    <div class="sheet-h"><h3>${esc(cfg.title)}</h3><button class="icon-btn sm" data-close>${icon('x', 18)}</button></div>
+    <div class="sheet-h"><h3>${esc(cfg.title)}</h3></div>
     ${cfg.intro ? `<p class="muted small" style="margin:-4px 0 14px">${esc(cfg.intro)}</p>` : ''}
     <form class="form" novalidate>
       ${cfg.fields.map(field).join('')}
@@ -238,7 +238,6 @@ export function openForm(cfg) {
       ${(cfg.extra || []).map((x, i) => `<button class="btn ${x.cls || 'secondary'} block" type="button" data-extra="${i}">${x.label}</button>`).join('')}
       ${cfg.onDelete ? `<button class="btn danger block" type="button" data-del>${icon('trash', 18)} Видалити</button>` : ''}
     </form>`, (el) => {
-    el.querySelector('[data-close]').onclick = closeSheet;
     el.querySelectorAll('[data-seg]').forEach((seg) => seg.addEventListener('click', (e) => {
       const b = e.target.closest('.seg-b');
       if (!b) return;
@@ -276,6 +275,6 @@ export function openForm(cfg) {
     if (del) del.onclick = async () => { if (confirm('Точно видалити?') && (await cfg.onDelete())) closeSheet(); };
     const first = el.querySelector('input:not([type=hidden]):not([type=checkbox]),textarea');
     if (first && !cfg.noFocus && !/iPhone|iPad/.test(navigator.userAgent)) first.focus();
-  }, { closeBtn: false });
+  });
   return sheet;
 }
