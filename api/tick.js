@@ -2,6 +2,7 @@
 import { kv, roomKey, sendTo } from './_notify.js';
 import { remindersDue } from './_remind.js';
 import { verifySignature } from './_qstash.js';
+import { moveInlineImages } from './_db.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const WINDOW = 40 * 60e3; // look back 40 min, so a late or skipped tick still delivers (each reminder is sent once)
@@ -29,6 +30,11 @@ export async function POST(request) {
     || (process.env.CRON_SECRET && request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`);
   if (!ok) { console.warn('tick forbidden', !!request.headers.get('upstash-signature')); return json({ error: 'forbidden' }, 403); }
   const r = await runTick();
+  // one-time job: photos → Storage (marker key so it runs once)
+  if (!(await kv.get('done:images-to-storage'))) {
+    try { const moved = await moveInlineImages(); if (moved !== null) { await kv.set('done:images-to-storage', { moved, at: Date.now() }); console.log('images moved', moved); } }
+    catch (e) { console.error('images move', e.message); }
+  }
   console.log('tick ok', JSON.stringify(r));
   return json({ ok: true, ...r });
 }

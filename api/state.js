@@ -1,7 +1,7 @@
 import { applyAction, newRoom, viewFor, ActionError, isDate } from '../lib/core.js';
 import { notifyAfterAction } from './_notify.js';
 
-import { configured, loadRoom as load, createRoom as createUnique, updateRoom } from './_db.js';
+import { configured, loadRoom as load, createRoom as createUnique, updateRoom, storeImage } from './_db.js';
 import { randomBytes } from 'node:crypto';
 const liveToken = () => randomBytes(12).toString('base64url'); // topic of the pair's live-update channel
 
@@ -52,6 +52,9 @@ export async function POST(request) {
       return json({ error: 'Спробуй ще раз' }, 500);
     }
     const code = cleanCode(body.code);
+    // Photos are kept in Supabase Storage, not inside the pair's data (keeps it small and fast).
+    if (action?.item?.image) action.item.image = await storeImage(action.item.image);
+    if (action?.patch?.image) action.patch.image = await storeImage(action.patch.image);
     const result = await updateRoom(code, async (state) => {
       if (!state) return { out: json({ error: 'Пару не знайдено' }, 404) };
       const next = applyAction(state, member, action || {}, today);

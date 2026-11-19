@@ -1,5 +1,5 @@
 // «Шептунчик» — AI helper available on every screen.
-import { S, on, act, openSheet, closeSheet, toast, partnerId, partner, today } from './store.js';
+import { S, on, act, openSheet, closeSheet, toast, partnerId, partner, today, LS } from './store.js';
 import { esc, icon, whisperer, fmtDate } from './ui.js';
 
 const CHIPS = [
@@ -95,10 +95,30 @@ async function send(sh, text, audio = '') {
       if (audio && m.actions.length) m.autoAt = Date.now() + 5000; // voice = do it, unless cancelled
       list.push(m);
       if (m.autoAt) autoRun(sh, list.length - 1);
+      if (audio) speak(m.text); // asked by voice → answer by voice
     }
   } catch { list.push({ role: 'err', text: 'Немає інтернету 🙈' }); }
   if (sh.isConnected) draw(sh);
 }
+
+/* ---- spoken replies (the phone's own Ukrainian voice, works offline) ---- */
+const speakOn = () => LS.get('wh.speak', true) !== false;
+function pickVoice() {
+  const vs = window.speechSynthesis?.getVoices?.() || [];
+  return vs.find((v) => /^uk/i.test(v.lang) && /enhanced|premium/i.test(v.name)) || vs.find((v) => /^uk/i.test(v.lang)) || null;
+}
+function speak(text) {
+  if (!speakOn() || !text || !window.speechSynthesis) return;
+  const clean = String(text).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '').replace(/\s+/g, ' ').trim();
+  if (!clean) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = 'uk-UA'; u.rate = 1.03; u.pitch = 1.1;
+  const v = pickVoice(); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+export const stopSpeaking = () => window.speechSynthesis?.cancel();
+window.speechSynthesis?.addEventListener?.('voiceschanged', () => {}); // iOS loads voices lazily
 
 /* ---- voice commands: auto-apply after a short countdown ---- */
 function autoRun(sh, i) {
@@ -166,6 +186,7 @@ function stopRec(sendIt = true) {
   if (r.sh.isConnected) recUi(r.sh, false);
 }
 async function startRec(sh) {
+  stopSpeaking();
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return toast('Цей браузер не вміє записувати голос 😔');
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
@@ -193,6 +214,7 @@ async function startRec(sh) {
 
 export function openWhisper(prefill = '') {
   const sh = openSheet(`<div class="wh-head">${whisperer(40)}<div class="grow"><b>Шептунчик</b><div class="muted small">твій помічник по всьому застосунку</div></div>
+      <button class="icon-btn sm ghost" data-voice aria-label="Озвучувати відповіді">${speakOn() ? '🔊' : '🔇'}</button>
       ${chat().length ? `<button class="icon-btn sm ghost" data-clear aria-label="Почати спочатку">${icon('trash', 16)}</button>` : ''}</div>
     <div class="wh-log"></div>
     <form class="wh-input"><span class="wh-rec-dot" aria-hidden="true"></span><span class="wh-rec-t">0:00</span><input id="wh-in" placeholder="Наприклад: у суботу о 19 кіно" maxlength="800" autocomplete="off" enterkeyhint="send" value="${esc(prefill)}"><button class="icon-btn mic" type="button" data-mic aria-label="Сказати голосом">${icon('mic', 20)}</button><button class="icon-btn" type="submit" aria-label="Надіслати">${icon('send', 20)}</button></form>`);
@@ -202,6 +224,10 @@ export function openWhisper(prefill = '') {
   sh.querySelector('.wh-input').onsubmit = (e) => { e.preventDefault(); if (rec) return stopRec(true); const t = inp.value; inp.value = ''; send(sh, t); };
   sh.querySelector('[data-mic]').addEventListener('click', () => (rec ? stopRec(true) : startRec(sh)));
   sh.querySelector('[data-clear]')?.addEventListener('click', () => { S.ui.whisper = []; draw(sh); });
+  sh.querySelector('[data-voice]').addEventListener('click', (e) => {
+    const on = !speakOn(); LS.set('wh.speak', on); e.currentTarget.textContent = on ? '🔊' : '🔇';
+    if (!on) stopSpeaking(); toast(on ? 'Озвучуватиму відповіді на голосові 🔊' : 'Без озвучки 🔇');
+  });
   sh.querySelector('.wh-log').addEventListener('change', (e) => {
     const box = e.target.closest('.wh-acts input'); if (!box) return;
     const m = chat()[+box.closest('.wh-acts').dataset.m]; const a = m?.actions[+box.dataset.j]; if (a) a.off = !box.checked;

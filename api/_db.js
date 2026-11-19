@@ -156,4 +156,53 @@ async function ping(room) {
 
 /** Daily clean-up of expired keys (Supabase only; Redis expires keys by itself). */
 export const gc = () => (backend === 'supabase' ? rpc('kv_gc', {}) : 0);
+/**
+ * Daily off-site backup: a full copy of the Supabase data goes to Upstash Redis (another provider),
+ * one snapshot per day, kept 14 days ("backup:YYYY-MM-DD"). Restore: public.kv_restore(secret, rows).
+ */
+export async function backupToRedis(day) {
+  if (backend !== 'supabase' || !(REDIS_URL && REDIS_TOKEN)) return { skipped: true };
+  const rows = await rpc('kv_dump', {});
+  const body = JSON.stringify({ at: new Date().toISOString(), rows });
+  await redis(['SET', 'backup:' + day, body, 'EX', 14 * 86400]);
+  await redis(['SET', 'backup:latest', day]);
+  return { rows: rows.length, kb: Math.round(body.length / 1024) };
+}
+/** Moves an inline photo (data: URL) into Supabase Storage; returns its public URL (or the input if it can't). */
+export async function storeImage(src) {
+  const m = typeof src === 'string' && /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(src);
+  if (!m || backend !== 'supabase') return src;
+  try {
+    const r = await fetch(`${SB_URL}/functions/v1/wish-photo`, {
+      method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: SB_SECRET, type: m[1], data: m[2] }), signal: AbortSignal.timeout(10000),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && typeof d.url === 'string' && d.url.startsWith('https://')) return d.url;
+    console.error('storeImage', r.status, d.error);
+  } catch (e) { console.error('storeImage', e.message); }
+  return src;
+}
+/** One-time: move photos stored inline in rooms into Storage. Safe to re-run (only touches data: URLs). */
+export async function moveInlineImages() {
+  if (backend !== 'supabase') return null;
+  const rows = await rpc('kv_dump', {});
+  let moved = 0;
+  for (const { key, value } of rows) {
+    if (!key.startsWith('room:')) continue;
+    const inline = (value.gifts || []).filter((g) => typeof g.image === 'string' && g.image.startsWith('data:'));
+    if (!inline.length) continue;
+    const urls = {};
+    for (const g of inline) { const u = await storeImage(g.image); if (u !== g.image) urls[g.id] = { from: g.image, to: u }; }
+    if (!Object.keys(urls).length) continue;
+    await updateRoom(key.slice(5), (st) => {
+      if (!st) return null;
+      let n = 0;
+      const gifts = st.gifts.map((g) => (urls[g.id] && g.image === urls[g.id].from ? (n++, { ...g, image: urls[g.id].to }) : g));
+      moved += n;
+      return n ? { next: { ...st, gifts, rev: (st.rev || 0) + 1 } } : null;
+    });
+  }
+  return moved;
+}
 export const supabaseReady = () => !!(SB_URL && SB_KEY && SB_SECRET);
