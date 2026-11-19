@@ -1085,3 +1085,7 @@ input, textarea, [contenteditable] { -webkit-touch-callout: default; }
 main.screen.swiping { transition: none; will-change: transform; box-shadow: -12px 0 30px rgba(0,0,0,.35); }
 main.screen.swipe-end { transition: transform .18s ease-out, opacity .18s ease-out; }
 @media (prefers-reduced-motion: reduce) { .screen.anim > * { animation: none !important; } }
+
+/* no visible scrollbars anywhere (scrolling still works) */
+html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
+::-webkit-scrollbar, *::-webkit-scrollbar { display: none; width: 0 !important; height: 0 !important; background: transparent; -webkit-appearance: none; }
