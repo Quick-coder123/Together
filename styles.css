@@ -1066,3 +1066,22 @@ canvas.pet3d { display: block; width: clamp(210px, 64vw, 270px); aspect-ratio: 1
 .wh-auto b { color: #2F9C84; }
 .wd-preview .pet-otter.has3d .hami { display: none; }
 .wd-preview canvas.pet3d { width: clamp(200px, 60vw, 250px); margin: 0 auto; }
+
+/* ---------- native feel: directional transitions, edge swipe, no rubber band ---------- */
+html { overscroll-behavior: none; }
+body { overscroll-behavior: none; -webkit-touch-callout: none; }
+img { -webkit-user-drag: none; }
+input, textarea, [contenteditable] { -webkit-touch-callout: default; }
+.screen.anim.go-r > *, .screen.anim.go-l > *, .screen.anim.go-push > *, .screen.anim.go-pop > * { animation-duration: .34s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); animation-fill-mode: both; }
+.screen.anim.go-r > * { animation-name: inR; }
+.screen.anim.go-l > * { animation-name: inL; }
+.screen.anim.go-push > * { animation-name: inPush; }
+.screen.anim.go-pop > * { animation-name: inPop; }
+.screen.anim.go-push > *, .screen.anim.go-pop > * { animation-delay: 0s !important; }
+@keyframes inR { from { opacity: 0; transform: translateX(26px); } }
+@keyframes inL { from { opacity: 0; transform: translateX(-26px); } }
+@keyframes inPush { from { opacity: .2; transform: translateX(55%); } }
+@keyframes inPop { from { opacity: .2; transform: translateX(-30%); } }
+main.screen.swiping { transition: none; will-change: transform; box-shadow: -12px 0 30px rgba(0,0,0,.35); }
+main.screen.swipe-end { transition: transform .18s ease-out, opacity .18s ease-out; }
+@media (prefers-reduced-motion: reduce) { .screen.anim > * { animation: none !important; } }
