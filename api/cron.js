@@ -2,6 +2,7 @@
 import { kv, roomKey, sendTo, digestFor } from './_notify.js';
 import { ensureSchedule } from './_qstash.js';
 import { runTick } from './tick.js';
+import { gc } from './_db.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const kyivToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kyiv' }).format(new Date());
@@ -25,6 +26,7 @@ export async function GET(request) {
     } catch (e) { console.error('cron room', code, e.message); }
   }
   const sched = await ensureSchedule().catch((e) => ({ ok: false, error: e.message }));
+  await gc().catch((e) => console.error('gc', e.message));
   const tick = await runTick().catch(() => null); // fallback when QStash is not connected
   return json({ ok: true, today, rooms: codes.length, sent, sched, tick });
 }

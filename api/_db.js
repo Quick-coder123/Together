@@ -45,7 +45,6 @@ async function redis(cmd) {
   if (!r.ok) throw new Error('Redis ' + r.status);
   return (await r.json()).result;
 }
-export const redisRaw = REDIS_URL && REDIS_TOKEN ? redis : null; // used only by the one-off migration
 
 /* ---------- memory ---------- */
 const memory = globalThis.__hamelykyMemory || (globalThis.__hamelykyMemory = new Map()); // key → { v, exp, ver }
@@ -155,6 +154,6 @@ async function ping(room) {
   } catch { /* the 4-second poll still catches it */ }
 }
 
-/** Bulk import (used once to move data from Redis to Supabase). rows: [{ key, value, ttl? }] */
-export const importRows = (rows) => rpc('kv_import', { p_rows: rows });
+/** Daily clean-up of expired keys (Supabase only; Redis expires keys by itself). */
+export const gc = () => (backend === 'supabase' ? rpc('kv_gc', {}) : 0);
 export const supabaseReady = () => !!(SB_URL && SB_KEY && SB_SECRET);
