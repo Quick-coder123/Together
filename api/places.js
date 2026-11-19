@@ -7,28 +7,8 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const DAILY_LIMIT = Number(process.env.PLACES_DAILY_LIMIT || 30);
 const T = (ms) => AbortSignal.timeout(ms);
 
-const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const memory = globalThis.__ottershipMemory || (globalThis.__ottershipMemory = new Map());
-const useMemory = !REDIS_URL && process.env.DEV_MEMORY === '1';
-
-async function redis(cmd) {
-  const r = await fetch(REDIS_URL, { method: 'POST', headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) });
-  if (!r.ok) throw new Error('Redis ' + r.status);
-  return (await r.json()).result;
-}
-async function loadRoom(code) {
-  if (useMemory) return memory.get(code) || null;
-  const raw = await redis(['GET', 'room:' + code]);
-  return raw ? JSON.parse(raw) : null;
-}
-async function countUse(code) {
-  const key = `pl:${code}:${new Date().toISOString().slice(0, 10)}`;
-  if (useMemory) { const n = (memory.get(key) || 0) + 1; memory.set(key, n); return n; }
-  const n = await redis(['INCR', key]);
-  if (n === 1) await redis(['EXPIRE', key, 172800]);
-  return n;
-}
+import { kv, loadRoom, configured } from './_db.js';
+const countUse = (code) => kv.incr(`pl:${code}:${new Date().toISOString().slice(0, 10)}`, 172800);
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const str = (v, n) => String(v ?? '').trim().slice(0, n);
@@ -83,7 +63,7 @@ const CATS = ['cafe', 'restaurant', 'bar', 'park', 'museum', 'cinema', 'nature',
 export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Невірний запит' }, 400); }
-  if (!useMemory && !(REDIS_URL && REDIS_TOKEN)) return json({ error: 'not_configured' }, 503);
+  if (!configured()) return json({ error: 'not_configured' }, 503);
   const code = String(body?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   const mid = String(body?.member || '').slice(0, 40);
   const room = await loadRoom(code);

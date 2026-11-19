@@ -1,29 +1,10 @@
 // Push notifications (Web Push). Not a route: files starting with "_" are helpers.
-// VAPID keys are created once and kept in Redis, so nothing has to be configured by hand.
+// VAPID keys are created once and kept in the database, so nothing has to be configured by hand.
 import * as webpush from 'web-push';
 import { addDays, dayDiff, streakOf, isPrivateFor } from '../lib/core.js';
 
-const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const memory = globalThis.__ottershipMemory || (globalThis.__ottershipMemory = new Map());
-export const useMemory = !REDIS_URL && process.env.DEV_MEMORY === '1';
-
-async function redis(cmd) {
-  const r = await fetch(REDIS_URL, { method: 'POST', headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) });
-  if (!r.ok) throw new Error('Redis ' + r.status);
-  return (await r.json()).result;
-}
-export const kv = {
-  async get(key) { if (useMemory) return memory.has(key) ? structuredClone(memory.get(key)) : null; const raw = await redis(['GET', key]); return raw ? JSON.parse(raw) : null; },
-  async set(key, val) { if (useMemory) return void memory.set(key, structuredClone(val)); await redis(['SET', key, JSON.stringify(val)]); },
-  async setNX(key, val) { if (useMemory) { if (memory.has(key)) return false; memory.set(key, structuredClone(val)); return true; } return (await redis(['SET', key, JSON.stringify(val), 'NX'])) === 'OK'; },
-  async claim(key, ttl) { if (useMemory) { if (memory.has(key)) return false; memory.set(key, 1); return true; } return (await redis(['SET', key, '1', 'NX', 'EX', ttl])) === 'OK'; },
-  async incr(key, ttl) { if (useMemory) { const n = (memory.get(key) || 0) + 1; memory.set(key, n); return n; } const n = await redis(['INCR', key]); if (n === 1) await redis(['EXPIRE', key, ttl]); return n; },
-  async sadd(key, v) { if (useMemory) { const s = new Set(memory.get(key) || []); s.add(v); memory.set(key, [...s]); return; } await redis(['SADD', key, v]); },
-  async srem(key, v) { if (useMemory) { memory.set(key, (memory.get(key) || []).filter((x) => x !== v)); return; } await redis(['SREM', key, v]); },
-  async smembers(key) { if (useMemory) return memory.get(key) || []; return (await redis(['SMEMBERS', key])) || []; },
-};
-export const roomKey = (code) => (useMemory ? code : 'room:' + code);
+import { kv, roomKey, useMemory } from './_db.js';
+export { kv, roomKey, useMemory };
 const subsKey = (code) => 'subs:' + code;
 
 let vapid;

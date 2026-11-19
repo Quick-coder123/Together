@@ -1,5 +1,6 @@
 import { S, H, on, go, create, join, toast, refresh, partnerId, partner, meM, LS, peek, signInAs, login, claim, register, checkLogin, openForm } from './store.js';
 import { transitionFor } from './gestures.js';
+import { liveSync, liveOn } from './live.js';
 import { esc, icon, avatar, otter } from './ui.js';
 import { meView } from './views/me.js';
 import { placesView } from './views/places.js';
@@ -176,6 +177,7 @@ function render() {
   app.innerHTML = `${header()}<main class="screen${changed ? ' anim ' + dir : ''}">${body}</main>${whisperFab()}${nav()}`;
   window.scrollTo(0, y);
   petMount();
+  liveSync();
   if (!document.querySelector('.sheet-bg')) badgeToast();
   if (fid) {
     const el = document.getElementById(fid);
@@ -225,7 +227,9 @@ checkPush();
 resyncPush();
 navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'refresh') refresh(true); });
 refresh(true);
-setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 4000);
+// With live updates connected, the partner's changes arrive instantly — poll rarely; otherwise every 4 s.
+let lastPoll = 0;
+setInterval(() => { if (document.visibilityState !== 'visible') return; if (liveOn() && Date.now() - lastPoll < 30000) return; lastPoll = Date.now(); refresh(); }, 4000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
 // Re-render once a minute so "today", timers and sealed notes stay current.
 setInterval(() => { if (document.visibilityState === 'visible' && !document.querySelector('.sheet-bg')) refresh(true); }, 60000);

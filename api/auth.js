@@ -3,26 +3,9 @@
 import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import { viewFor, isDate } from '../lib/core.js';
 
-const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const memory = globalThis.__ottershipMemory || (globalThis.__ottershipMemory = new Map());
-const useMemory = !REDIS_URL && process.env.DEV_MEMORY === '1';
+import { kv, roomKey, configured, updateRoom } from './_db.js';
 const MAX_FAILS = 10; // per login per 15 minutes
 
-async function redis(cmd) {
-  const r = await fetch(REDIS_URL, { method: 'POST', headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) });
-  if (!r.ok) throw new Error('Redis ' + r.status);
-  return (await r.json()).result;
-}
-const kv = {
-  async get(key) { if (useMemory) return memory.has(key) ? structuredClone(memory.get(key)) : null; const raw = await redis(['GET', key]); return raw ? JSON.parse(raw) : null; },
-  async set(key, val) { if (useMemory) return void memory.set(key, structuredClone(val)); await redis(['SET', key, JSON.stringify(val)]); },
-  async setNX(key, val) { if (useMemory) { if (memory.has(key)) return false; memory.set(key, structuredClone(val)); return true; } return (await redis(['SET', key, JSON.stringify(val), 'NX'])) === 'OK'; },
-  async del(key) { if (useMemory) return void memory.delete(key); await redis(['DEL', key]); },
-  async incr(key, ttl) { if (useMemory) { const n = (memory.get(key) || 0) + 1; memory.set(key, n); return n; } const n = await redis(['INCR', key]); if (n === 1) await redis(['EXPIRE', key, ttl]); return n; },
-};
-// Rooms are stored by the state API under "room:<code>" (in dev memory: under "<code>").
-const roomKey = (code) => (useMemory ? code : 'room:' + code);
 const userKey = (login) => 'user:' + login;
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
@@ -46,7 +29,7 @@ async function signedIn(rec, today) {
 }
 
 async function checkPassword(login, password) {
-  const fails = useMemory ? memory.get('fail:' + login) || 0 : Number((await redis(['GET', 'fail:' + login])) || 0);
+  const fails = Number((await kv.get('fail:' + login)) || 0);
   if (fails >= MAX_FAILS) return { error: json({ error: 'Забагато спроб. Спробуй через 15 хвилин.' }, 429) };
   const rec = await kv.get(userKey(login));
   if (!rec || !verify(password, rec)) {
@@ -57,7 +40,7 @@ async function checkPassword(login, password) {
 }
 
 export async function POST(request) {
-  if (!useMemory && !(REDIS_URL && REDIS_TOKEN)) return json({ error: 'not_configured' }, 503);
+  if (!configured()) return json({ error: 'not_configured' }, 503);
   let b;
   try { b = await request.json(); } catch { return json({ error: 'Невірний запит' }, 400); }
   const today = isDate(b?.today) ? b.today : null;
@@ -107,10 +90,12 @@ export async function POST(request) {
         if (prev) await kv.del(userKey(prev));
       }
       // Re-read the room right before writing to keep concurrent changes.
-      const fresh = await kv.get(roomKey(code));
-      fresh.members[mid].login = login;
-      fresh.rev = (fresh.rev || 0) + 1;
-      await kv.set(roomKey(code), fresh);
+      const fresh = await updateRoom(code, (st) => {
+        if (!st?.members[mid]) return { out: null };
+        const next = { ...st, members: { ...st.members, [mid]: { ...st.members[mid], login } }, rev: (st.rev || 0) + 1 };
+        return { next, out: next };
+      });
+      if (!fresh) return json({ error: 'Пару не знайдено' }, 404);
       return json({ ok: true, login, room: viewFor(fresh, mid, today) });
     }
 

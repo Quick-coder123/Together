@@ -38,6 +38,9 @@
     },
     "api/tick.js": {
       "maxDuration": 60
+    },
+    "api/migrate.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
