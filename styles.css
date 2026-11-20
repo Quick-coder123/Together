@@ -1138,3 +1138,46 @@ html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
 .know-line .no { color: var(--muted); }
 #dr-date-f[hidden] { display: none !important; }
 .know-top { padding-right: 46px; }
+
+/* ---------- Шептунчик: voice panel (Kokonut UI «AI Voice», rebuilt) ---------- */
+.wh-voice { padding: 4px 0 2px; }
+.vx { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 0 6px; transition: opacity .16s ease, filter .16s ease; }
+.vx.leaving { opacity: 0; filter: blur(3px); }
+.vx-btn-wrap { position: relative; }
+.vx-ring { position: absolute; inset: 0; border-radius: 50%; background: rgba(229,72,77,.16); opacity: 0; pointer-events: none; }
+.vx-btn { position: relative; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; color: var(--text);
+  transition: background-color .15s ease-out, box-shadow .15s ease-out; }
+.vx[data-mode="idle"] .vx-btn { box-shadow: inset 0 0 0 1px var(--line); }
+.vx[data-mode="recording"] .vx-btn { background: rgba(229,72,77,.16); }
+.vx[data-mode="review"] .vx-btn { background: var(--card2); }
+.vx-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.vx-face { position: absolute; display: grid; place-items: center; opacity: 0; transform: scale(.5); filter: blur(3px);
+  transition: opacity .2s cubic-bezier(.23,1,.32,1), transform .2s cubic-bezier(.23,1,.32,1), filter .2s cubic-bezier(.23,1,.32,1); }
+.vx-face.on { opacity: 1; transform: scale(1); filter: blur(0); }
+.vx-face[data-f="play"] svg, .vx-face[data-f="pause"] svg { fill: currentColor; stroke: none; }
+.vx-stop { display: block; width: 20px; height: 20px; border-radius: 6px; background: #E5484D; }
+.vx-timer { position: relative; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; letter-spacing: .02em; color: var(--muted); transition: color .3s; }
+.vx:not([data-mode="idle"]) .vx-timer { color: var(--text); }
+.vx-dot { position: absolute; right: 100%; top: 50%; margin-right: 8px; width: 6px; height: 6px; border-radius: 50%; background: #E5484D; transform: translateY(-50%); opacity: 0; transition: opacity .15s; }
+.vx[data-mode="recording"] .vx-dot { opacity: 1; }
+.vx-wave { position: relative; width: 240px; height: 32px; overflow: hidden; }
+.vx[data-mode="recording"] .vx-wave { -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 92%, transparent); mask-image: linear-gradient(to right, transparent, #000 18%, #000 92%, transparent); }
+.vx-row, .vx-played { display: flex; align-items: center; gap: 2px; height: 100%; }
+.vx-played { position: absolute; inset: 0; opacity: 0; transition: opacity .2s; clip-path: inset(0 100% 0 0); }
+.vx[data-mode="review"] .vx-played { opacity: 1; }
+.vx-row span, .vx-played span { flex: none; width: 3px; height: 100%; border-radius: 999px; }
+.vx-row span { background: color-mix(in srgb, var(--text) 18%, transparent); transition: transform .5s cubic-bezier(.23,1,.32,1); }
+.vx[data-mode="recording"] .vx-row span { background: var(--accent); transition: none; }
+.vx-played span { background: var(--accent); }
+.vx-foot { position: relative; height: 30px; display: grid; place-items: center; }
+.vx-cap, .vx-acts { grid-area: 1 / 1; transition: opacity .2s cubic-bezier(.23,1,.32,1), transform .2s cubic-bezier(.23,1,.32,1), filter .2s cubic-bezier(.23,1,.32,1); }
+.vx-cap { font-size: 13px; color: var(--muted); }
+.vx-acts { display: flex; gap: 6px; opacity: 0; transform: translateY(4px); filter: blur(2px); pointer-events: none; }
+.vx[data-mode="review"] .vx-cap { opacity: 0; filter: blur(2px); }
+.vx[data-mode="review"] .vx-acts { opacity: 1; transform: none; filter: blur(0); pointer-events: auto; }
+.vx-acts button { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+.vx-discard { color: var(--muted); }
+.vx-discard:active { background: var(--card2); }
+.vx-send { background: var(--accent); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(0,0,0,.18); }
+@media (prefers-reduced-motion: reduce) { .vx-face, .vx-row span, .vx-acts, .vx-cap { transition: opacity .2s !important; transform: none !important; filter: none !important; } }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

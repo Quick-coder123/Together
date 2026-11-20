@@ -1,7 +1,7 @@
-const CACHE = 'hamelyky-v48';
+const CACHE = 'hamelyky-v49';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/manifest.webmanifest',
-  '/js/app.js', '/js/games.js', '/js/osm.js', '/js/push.js', '/js/store.js', '/js/ui.js', '/js/derive.js', '/js/whisper.js', '/js/petlive.js', '/js/pet3d.js', '/js/pet3d-acc.js', '/js/gestures.js', '/js/live.js', '/js/know.js', '/js/draw.js', '/img/hami3d.bin',
+  '/js/app.js', '/js/games.js', '/js/osm.js', '/js/push.js', '/js/store.js', '/js/ui.js', '/js/derive.js', '/js/whisper.js', '/js/petlive.js', '/js/pet3d.js', '/js/pet3d-acc.js', '/js/gestures.js', '/js/live.js', '/js/know.js', '/js/draw.js', '/js/voice-ui.js', '/img/hami3d.bin',
   '/js/views/me.js', '/js/views/places.js', '/js/views/home.js', '/js/views/wish.js', '/js/views/more.js',
   '/lib/core.js', '/icons/icon.svg', '/icons/icon-192.png', '/icons/apple-touch-icon.png',
 ];

@@ -1,6 +1,7 @@
 // «Шептунчик» — AI helper available on every screen.
 import { S, on, act, openSheet, closeSheet, toast, partnerId, partner, today, LS } from './store.js';
 import { esc, icon, whisperer, fmtDate } from './ui.js';
+import { openVoicePanel } from './voice-ui.js';
 
 const CHIPS = [
   'Сплануй нам побачення на вихідні 💞',
@@ -217,12 +218,27 @@ export function openWhisper(prefill = '') {
       <button class="icon-btn sm ghost" data-voice aria-label="Озвучувати відповіді">${speakOn() ? '🔊' : '🔇'}</button>
       ${chat().length ? `<button class="icon-btn sm ghost" data-clear aria-label="Почати спочатку">${icon('trash', 16)}</button>` : ''}</div>
     <div class="wh-log"></div>
+    <div class="wh-voice" hidden></div>
     <form class="wh-input"><span class="wh-rec-dot" aria-hidden="true"></span><span class="wh-rec-t">0:00</span><input id="wh-in" placeholder="Наприклад: у суботу о 19 кіно" maxlength="800" autocomplete="off" enterkeyhint="send" value="${esc(prefill)}"><button class="icon-btn mic" type="button" data-mic aria-label="Сказати голосом">${icon('mic', 20)}</button><button class="icon-btn" type="submit" aria-label="Надіслати">${icon('send', 20)}</button></form>`);
   sh.closest('.sheet')?.classList.add('wh-sheet');
   draw(sh);
   const inp = sh.querySelector('#wh-in');
   sh.querySelector('.wh-input').onsubmit = (e) => { e.preventDefault(); if (rec) return stopRec(true); const t = inp.value; inp.value = ''; send(sh, t); };
-  sh.querySelector('[data-mic]').addEventListener('click', () => (rec ? stopRec(true) : startRec(sh)));
+  // 🎤 → the voice panel (Kokonut «AI Voice» rebuilt): record, listen back, then send or discard
+  sh.querySelector('[data-mic]').addEventListener('click', () => {
+    stopSpeaking();
+    const form = sh.querySelector('.wh-input'), box = sh.querySelector('.wh-voice');
+    form.hidden = true; box.hidden = false;
+    const close = () => { box.hidden = true; box.innerHTML = ''; form.hidden = false; };
+    openVoicePanel(box, {
+      onClose: close,
+      onError: (msg) => { toast(msg); close(); },
+      onSend: async (blob) => {
+        try { const { data, sec } = await toWavB64(blob); if (sec < 0.5) return toast('Нічого не почув 🙉'); if (sh.isConnected) send(sh, '', data); }
+        catch (e) { console.warn('voice', e); toast('Не вдалося обробити запис 😔'); }
+      },
+    });
+  });
   sh.querySelector('[data-clear]')?.addEventListener('click', () => { S.ui.whisper = []; draw(sh); });
   sh.querySelector('[data-voice]').addEventListener('click', (e) => {
     const on = !speakOn(); LS.set('wh.speak', on); e.currentTarget.textContent = on ? '🔊' : '🔇';
