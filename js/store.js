@@ -1,5 +1,6 @@
 // App state, server sync, sheets/forms and the click-handler registry.
 import { esc, icon, localDate, resizeImage } from './ui.js';
+import { wheelTimeHtml, bindWheel, starsHtml, bindStars } from './motion.js';
 
 const LS = {
   get: (k, d = null) => { try { return JSON.parse(localStorage.getItem('os.' + k)) ?? d; } catch { return d; } },
@@ -55,6 +56,18 @@ document.addEventListener('input', (e) => {
 
 /* ---------------- toast ---------------- */
 let toastTimer;
+/** A toast with «Повернути» (undo) and a shrinking timer bar; 5 s to change your mind. */
+export function undoToast(msg, onUndo, ms = 5000) {
+  document.querySelector('.undo-toast')?.remove();
+  const el = document.createElement('div');
+  el.className = 'undo-toast';
+  el.innerHTML = `<span>${msg}</span><button type="button">↩️ Повернути</button><i style="animation-duration:${ms}ms"></i>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  const bye = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); };
+  const t = setTimeout(bye, ms);
+  el.querySelector('button').addEventListener('click', () => { clearTimeout(t); el.classList.add('done'); bye(); onUndo(); });
+}
 export function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -130,10 +143,13 @@ export async function register(loginName, password) {
 
 export async function act(action, { silent = false, render = true } = {}) {
   if (!S.code) return false;
+  // deletions can be undone for a few seconds
+  const removed = action?.type === 'remove' ? S.room?.[action.col]?.find((x) => x.id === action.id) : null;
   try {
     const r = await call('POST', { code: S.code, today: today(), member: { id: S.me.id }, action });
     setRoom(r);
     if (render) S.render();
+    if (removed) undoToast('Видалено', async () => { if (await act({ type: 'restore', col: action.col, item: structuredClone(removed) })) toast('Повернуто ↩️'); });
     return true;
   } catch (e) {
     if (!silent) toast(e.message);
@@ -224,7 +240,9 @@ export function openForm(cfg) {
           <div class="img-acts"><label class="btn sm secondary">${icon('image', 16)} <span data-img-l>${v ? 'Змінити фото' : 'Додати фото'}</span><input type="file" accept="image/*" hidden></label>
           <button type="button" class="btn sm ghost" data-img-del ${v ? '' : 'hidden'}>${icon('trash', 16)} Прибрати</button></div>
           <input type="hidden" id="${id}" value="${esc(v)}"></div></div>`;
-      case 'date': case 'time': input = `<input class="input" id="${id}" type="${f.type}" value="${esc(v)}">`; break;
+      case 'date': input = `<input class="input" id="${id}" type="date" value="${esc(v)}">`; break;
+      case 'time': return `<div class="field"><span>${esc(f.label)}</span>${wheelTimeHtml(id, v)}</div>`;
+      case 'stars': return `<div class="field"><span>${esc(f.label)}</span>${starsHtml(Number(v) || 0, { size: 30, attr: `data-stars="${f.key}"` })}<input type="hidden" id="${id}" value="${esc(v)}"></div>`;
       default: input = `<input class="input" id="${id}" type="text" maxlength="${f.max || 120}" value="${esc(v)}"${ph}>`;
     }
     return `<label class="field"><span>${esc(f.label)}${f.required ? ' *' : ''}</span>${input}</label>`;
@@ -244,6 +262,8 @@ export function openForm(cfg) {
       seg.querySelectorAll('.seg-b').forEach((x) => x.classList.toggle('on', x === b));
       el.querySelector('#f-' + seg.dataset.seg).value = b.dataset.v;
     }));
+    el.querySelectorAll('[data-wheel]').forEach(bindWheel);
+    el.querySelectorAll('[data-stars]').forEach((box) => bindStars(box, (n) => { el.querySelector('#f-' + box.dataset.stars).value = n ? String(n) : ''; }));
     el.querySelectorAll('[data-img]').forEach((box) => {
       const hid = box.querySelector('input[type=hidden]'), prev = box.querySelector('.img-prev'), del = box.querySelector('[data-img-del]');
       const show = (src) => { hid.value = src; prev.classList.toggle('has', !!src); prev.innerHTML = src ? `<img src="${esc(src)}" alt="">` : icon('image', 28); del.hidden = !src; box.querySelector('[data-img-l]').textContent = src ? 'Змінити фото' : 'Додати фото'; };
@@ -272,7 +292,7 @@ export function openForm(cfg) {
     };
     el.querySelectorAll('[data-extra]').forEach((b) => { b.onclick = async () => { b.disabled = true; if (await cfg.extra[+b.dataset.extra].onClick()) closeSheet(); else b.disabled = false; }; });
     const del = el.querySelector('[data-del]');
-    if (del) del.onclick = async () => { if (confirm('Точно видалити?') && (await cfg.onDelete())) closeSheet(); };
+    if (del) del.onclick = async () => { del.disabled = true; if (await cfg.onDelete()) closeSheet(); else del.disabled = false; }; // «Повернути» toast replaces the «are you sure?»
     const first = el.querySelector('input:not([type=hidden]):not([type=checkbox]),textarea');
     if (first && !cfg.noFocus && !/iPhone|iPad/.test(navigator.userAgent)) first.focus();
   });

@@ -1,6 +1,7 @@
 import { S, H, on, go, create, join, toast, refresh, partnerId, partner, meM, LS, peek, signInAs, login, claim, register, checkLogin, openForm } from './store.js';
 import { transitionFor } from './gestures.js';
 import { liveSync, liveOn } from './live.js';
+import { tilt } from './motion.js';
 import { esc, icon, avatar, otter } from './ui.js';
 import { meView } from './views/me.js';
 import { placesView } from './views/places.js';
@@ -178,6 +179,7 @@ function render() {
   window.scrollTo(0, y);
   petMount();
   liveSync();
+  document.querySelectorAll('[data-tilt]').forEach((el) => tilt(el));
   if (!document.querySelector('.sheet-bg')) badgeToast();
   if (fid) {
     const el = document.getElementById(fid);

@@ -4,6 +4,7 @@ import { esc, icon, hami, emptyState, avatar, fmtDate, fmtRange, money, MONTHS, 
 import { addDays, weekStart, checkinWeek, CHECKIN_QUESTIONS, levelInfo } from '/lib/core.js';
 import { itemsBetween, KIND } from '../derive.js';
 import { piggy, share } from './me.js';
+import { burst, slideConfirm } from '../motion.js';
 import { enablePush, disablePush, testPush } from '../push.js';
 import { placeForm, blindForm } from './places.js';
 
@@ -60,8 +61,15 @@ function tripsView() {
   <button class="dashed-btn" data-a="tripForm">+ Додати напрямок</button>
   ${r.trips.length ? `<div class="cards">${r.trips.map((t) => {
     const spent = (t.expenses || []).reduce((s, e) => s + e.amount, 0);
-    return `<button class="card place" data-a="go" data-tab="more" data-sub="trip:${t.id}"><span class="place-em">🧳</span><span class="grow"><b>${esc(t.name)}</b><br>
-      <span class="muted small">${t.start ? fmtRange(t.start, t.end) : 'Дати ще не обрані'} · ${t.places.length} ${plural(t.places.length, 'місце', 'місця', 'місць')}${t.budget ? ` · ${money(spent)} з ${money(t.budget)}` : ''}</span></span>${icon('chev', 18)}</button>`;
+    // boarding pass (after Kokonut UI «Boarding pass» + DesignBookmark «Parallax ticket»)
+    const code = (t.name.replace(/[^A-Za-zА-ЯІЇЄҐа-яіїєґ]/g, '').slice(0, 3) || 'ТУР').toUpperCase();
+    return `<button class="ticket" data-tilt data-a="go" data-tab="more" data-sub="trip:${t.id}"><span class="tk-shine"></span>
+      <span class="tk-top"><span>🦎 ХАМЕЛЕОН-ЕЙР</span><span class="tk-pill">НА ДВОХ</span></span>
+      <span class="tk-route"><span><small>ЗВІДКИ</small><b>ДІМ</b></span><span class="tk-path"><i></i>✈︎<i></i></span><span class="right"><small>КУДИ</small><b>${esc(code)}</b></span></span>
+      <span class="tk-name">${esc(t.name)}</span>
+      <span class="tk-perf"></span>
+      <span class="tk-meta"><span><small>ДАТИ</small><b>${t.start ? fmtRange(t.start, t.end) : 'ще не обрані'}</b></span><span><small>МІСЦЬ</small><b>${t.places.length}</b></span><span><small>БЮДЖЕТ</small><b>${t.budget ? `${money(spent)} / ${money(t.budget)}` : '—'}</b></span></span>
+      <span class="tk-bar" aria-hidden="true"></span></button>`;
   }).join('')}</div>` : `<div class="dashed muted center">Поки немає напрямків — додай перший.</div>`}
   <div class="sec-label mt2">${icon('plane', 16)} ШВИДКІ ВІДМІТКИ</div>
   <p class="muted small">Просто відмітити, куди й коли їздили, — без планера.</p>
@@ -444,6 +452,13 @@ function notesView() {
     const liked = n.hearts.length;
     const sealedForMe = n.sealed;
     const pendingForThem = mine && n.openAt && n.openAt > Date.now();
+    const content = `${n.image ? `<button class="ndraw" data-a="noteImg" data-src="${esc(n.image)}"><img src="${esc(n.image)}" alt="Малюнок" loading="lazy"></button>` : ''}${n.text ? `<div class="ntext">${esc(n.text)}</div>` : ''}`;
+    // a sealed note that has just opened: an envelope that turns over like a page (once)
+    if (!mine && n.openAt && !sealedForMe && !LS.get('flipped', []).includes(n.id)) {
+      return `<div class="note theirs flip-note" data-a="flipNote" data-id="${n.id}"><div class="flip-inner">
+        <div class="flip-front"><span class="flip-env">💌</span><b>Записка відкрилась!</b><span class="small muted">Торкнись, щоб прочитати</span></div>
+        <div class="flip-back">${content}</div></div></div>`;
+    }
     return `<div class="note ${mine ? 'mine' : 'theirs'}">
       ${sealedForMe ? `<div class="sealed">💌 Запечатана записка<br><span class="small muted">Відкриється ${new Date(n.openAt).toLocaleString('uk-UA', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span></div>` : `${n.image ? `<button class="ndraw" data-a="noteImg" data-src="${esc(n.image)}"><img src="${esc(n.image)}" alt="Малюнок" loading="lazy"></button>` : ''}${n.text ? `<div class="ntext">${esc(n.text)}</div>` : ''}`}
       <div class="meta"><span>${mine ? 'Ти' : esc(nameOf(n.from))} · ${ago(n.ts)}${pendingForThem ? ` · ${icon('lock', 12)} відкриється ${new Date(n.openAt).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
@@ -451,7 +466,13 @@ function notesView() {
       ${mine ? `<button data-a="delNote" data-id="${n.id}" aria-label="Видалити">${icon('trash', 14)}</button>` : ''}</span></div></div>`;
   }).join('')}</div>` : emptyState('Тут будуть ваші записки одне одному.', '', `<button class="btn" data-a="noteSheet">${icon('send', 18)} Написати</button>`)}`;
 }
-on('heartNote', (el) => act({ type: 'heartNote', id: el.dataset.id }));
+on('heartNote', (el) => { if (!el.classList.contains('liked')) burst(el); act({ type: 'heartNote', id: el.dataset.id }); });
+on('flipNote', (el) => {
+  if (el.classList.contains('flipped')) return;
+  el.classList.add('flipped');
+  LS.set('flipped', [...LS.get('flipped', []), el.dataset.id].slice(-200));
+  setTimeout(() => S.render(), 900);
+});
 on('noteImg', (el) => openSheet(`<img class="ndraw-full" src="${esc(el.dataset.src)}" alt="Малюнок">`));
 on('delNote', (el) => { if (confirm('Видалити записку?')) act({ type: 'delNote', id: el.dataset.id }); });
 
@@ -519,7 +540,7 @@ on('avaDel', () => act({ type: 'profile', avatar: null }));
 on('theme', (el) => { LS.set('theme', el.dataset.v); applyTheme(); S.render(); });
 on('logout', () => { if (confirm('Вийти на цьому пристрої? Щоб повернутися, введи код пари.')) leave(); });
 on('leavePair', async () => {
-  if (!confirm('Покинути пару? Тебе буде видалено, а партнер залишиться з даними.')) return;
+  if (!(await slideConfirm({ title: 'Покинути пару?', text: 'Тебе буде видалено з пари, а партнер залишиться з усіма даними.', label: 'Проведи, щоб вийти з пари', art: hami('sad', { size: 90 }) }))) return;
   if (await act({ type: 'leavePair' }, { render: false })) leave();
 });
 export function applyTheme() {

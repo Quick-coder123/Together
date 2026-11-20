@@ -1,4 +1,5 @@
 // «Дім» — shopping, chores, recipes.
+import { slideConfirm } from '../motion.js';
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, partnerId } from '../store.js';
 import { otter, hami, cookScene } from '../ui.js';
 import { esc, icon, emptyState, fmtDate } from '../ui.js';
@@ -125,7 +126,7 @@ function listSheet(cat, fresh) {
   const draw = (focusLast) => {
     box.innerHTML = rows.length ? `<div class="sl-h muted small">У списку · ${rows.length}</div>` + rows.map((r, i) => `<div class="sl-row ${r.miss ? 'miss' : ''}" data-i="${i}">
       <div class="row"><b class="grow">${esc(r.text)}</b><button type="button" class="icon-btn xs ghost" data-rm aria-label="Прибрати">${icon('x', 16)}</button></div>
-      <div class="sl-f"><input class="input sm" data-k="qty" placeholder="К-ть *" maxlength="20" value="${esc(r.qty)}" autocomplete="off">
+      <div class="sl-f"><div class="stepper"><button type="button" class="st-b" data-step="-1" aria-label="Менше">−</button><input class="input sm" data-k="qty" placeholder="К-ть *" maxlength="20" value="${esc(r.qty)}" autocomplete="off"><button type="button" class="st-b" data-step="1" aria-label="Більше">+</button></div>
       <input class="input sm" data-k="note" placeholder="Примітка" maxlength="120" value="${esc(r.note)}" autocomplete="off"></div></div>`).join('') : `<p class="center muted small pad">Додай продукти — кожен окремим рядком з кількістю.</p>`;
     if (focusLast) box.querySelector('.sl-row:last-child [data-k=qty]')?.focus();
   };
@@ -142,7 +143,22 @@ function listSheet(cat, fresh) {
     if (r.qty.trim()) { r.miss = false; row.classList.remove('miss'); }
   });
   box.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (e.target.dataset.k === 'qty') e.target.nextElementSibling?.focus(); else inp.focus(); } });
-  box.addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (b) { rows.splice(+b.closest('.sl-row').dataset.i, 1); draw(); } });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rm]'); if (b) { rows.splice(+b.closest('.sl-row').dataset.i, 1); draw(); return; }
+    // − / + : changes the number and keeps the unit («2 л» → «3 л»; «0.5 кг» → «1 кг»)
+    const st = e.target.closest('[data-step]'); if (!st) return;
+    const row = st.closest('.sl-row'), r = rows[+row.dataset.i], q = row.querySelector('[data-k=qty]');
+    const m = /^\s*(\d+(?:[.,]\d+)?)\s*(.*)$/.exec(r.qty || '');
+    const n = m ? parseFloat(m[1].replace(',', '.')) : 0, unit = m ? m[2] : (r.qty || '').trim();
+    const step = +st.dataset.step, frac = n % 1 !== 0 || (n < 1 && n > 0);
+    let next = frac ? Math.round((n + step * 0.5) * 10) / 10 : n + step;
+    if (next <= 0) next = step < 0 ? 0 : 1;
+    r.qty = next ? `${String(next).replace('.', ',')}${unit ? ' ' + unit : ''}` : '';
+    q.value = r.qty;
+    q.classList.remove('roll-up', 'roll-down'); void q.offsetWidth; q.classList.add(step > 0 ? 'roll-up' : 'roll-down');
+    if (r.qty) { r.miss = false; row.classList.remove('miss'); }
+    navigator.vibrate?.(6);
+  });
   tagsBox.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-t]'), x = e.target.closest('[data-tx]'), n = e.target.closest('[data-tnew]');
     if (t) add(t.dataset.t);
@@ -168,20 +184,11 @@ function listSheet(cat, fresh) {
     if (ok) { closeSheet(); toast(fresh ? (pid ? 'Список готовий — пару сповіщено 🛒' : 'Список готовий 🛒') : 'Додано в список 🛒'); } else btn.disabled = false;
   };
 }
-on('shopClear', (el) => {
+on('shopClear', async (el) => {
   const cat = el.dataset.v === 'other' ? 'other' : 'food';
   const n = S.room.shopping.filter((x) => x.cat === cat).length;
-  openSheet(`<div class="center pad">${otter({ face: 'sad', size: 90 })}
-    <h3 class="h3 mt">Очистити весь список?</h3>
-    <p class="muted">Буде видалено ${n} ${n === 1 ? 'пункт' : n < 5 ? 'пункти' : 'пунктів'} — і куплені, і ще не куплені. Це не можна скасувати.</p></div>
-    <button class="btn danger-fill block" data-yes>${icon('trash', 18)} Так, очистити</button>
-    <button class="btn ghost block" data-no>Скасувати</button>`, (sh) => {
-    sh.querySelector('[data-no]').onclick = closeSheet;
-    sh.querySelector('[data-yes]').onclick = async (e) => {
-      e.currentTarget.disabled = true;
-      if (await act({ type: 'shopClear', cat })) { closeSheet(); toast('Список очищено'); } else e.currentTarget.disabled = false;
-    };
-  });
+  const yes = await slideConfirm({ title: 'Очистити весь список?', text: `Буде видалено ${n} ${n === 1 ? 'пункт' : n < 5 ? 'пункти' : 'пунктів'} — і куплені, і ще не куплені.`, label: 'Проведи, щоб очистити', art: otter({ face: 'sad', size: 90 }) });
+  if (yes && (await act({ type: 'shopClear', cat }))) toast('Список очищено');
 });
 on('shopNew', (el) => listSheet(el.dataset.v === 'other' ? 'other' : 'food', true));
 on('shopMore', (el) => listSheet(el.dataset.v === 'other' ? 'other' : 'food', false));

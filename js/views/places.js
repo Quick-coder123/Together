@@ -2,6 +2,7 @@
 import { S, on, act, openSheet, closeSheet, openForm, toast, today, nameOf, ui, LS } from '../store.js';
 import { esc, icon, emptyState, fmtDate, otter, hami, mapScene } from '../ui.js';
 import { geocodeCity, reverse, nearbyPlaces, suggestCities, reportMapError } from '../osm.js';
+import { starsHtml, swipeDeck } from '../motion.js';
 
 export const CATS = {
   cafe: ['☕', 'Кафе'], restaurant: ['🍽️', 'Ресторан'], bar: ['🍷', 'Бар'], park: ['🌳', 'Парк'], museum: ['🖼️', 'Виставка / музей'],
@@ -26,7 +27,7 @@ export function placesView() {
   return `
   <div class="page-h"><h1>Місця і побачення</h1><button class="fab" data-a="addPlace" aria-label="Додати місце">${icon('plus', 26)}</button></div>
   <div class="grid2">
-    <button class="tile warm" data-a="randomPlace"><span class="tile-ic">${icon('dice')}</span><b>Випадкове місце</b><span>Довіритися випадку</span></button>
+    <button class="tile warm" data-a="randomPlace"><span class="tile-ic">🃏</span><b>Гортай місця</b><span>Свайп «хочу / ні»</span></button>
     <button class="tile sparkles" data-a="blind"><span class="tile-ic">${icon('mask')}</span><b>Побачення наосліп</b><span>Сюрприз для партнера</span></button>
   </div>
   ${blind.map(blindCard).join('')}
@@ -56,7 +57,7 @@ function placeCard(p) {
   return `<div class="card place ${p.visited ? 'visited' : ''}" data-a="editPlace" data-id="${p.id}" role="button" tabindex="0">
     <span class="place-em">${em}</span>
     <span class="grow"><b>${esc(p.name)}</b><br><span class="muted small">${cat}${p.mode === 'plan' && p.date ? ` · ${fmtDate(p.date)}${p.time ? ' ' + p.time : ''}` : ''}${p.address && !addrUrl ? ' · ' + esc(p.address) : host ? ' · ' + esc(host) : ''}</span>
-    ${p.visited ? `<br><span class="small ok-t">${icon('check', 14)} Були${p.rating ? ' · ' + '★'.repeat(p.rating) : ''}</span>` : ''}</span>
+    ${p.visited ? `<br><span class="small ok-t">${icon('check', 14)} Були</span> ${starsHtml(p.rating || 0, { size: 17, attr: `data-rate="${p.id}"` })}` : ''}</span>
     ${link ? `<a class="go-btn" href="${esc(link)}" target="_blank" rel="noopener" aria-label="${isMap ? 'Відкрити на мапі' : 'Перейти за посиланням'}">${icon(isMap ? 'pin' : 'out', 16)}<span>${isMap ? 'Мапа' : 'Відкрити'}</span></a>` : ''}
     <span class="check-b ${p.visited ? 'on' : ''}" data-a="visitPlace" data-id="${p.id}" role="checkbox" aria-checked="${!!p.visited}" aria-label="Були тут">${p.visited ? icon('check', 16) : ''}</span>
   </div>`;
@@ -71,9 +72,12 @@ function meetRow(v) {
 function blindCard(b) {
   const mineB = b.by === S.me.id;
   const open = mineB || b.revealed || (b.date && b.date <= today());
-  return `<section class="card blind" ${mineB ? `data-a="editBlind" data-id="${b.id}"` : ''}>
-    <div class="row"><span class="ic-box pink">${icon('mask')}</span><div class="grow"><b>${mineB ? 'Твоє побачення наосліп' : `Сюрприз для тебе · ${esc(nameOf(b.by))}`}</b><br>
-    <span class="muted small">${b.date ? fmtDate(b.date, { weekday: true }) : 'Дата ще не обрана'}${b.time ? ' · ' + b.time : ''}</span></div>${mineB ? icon('pencil', 18) : ''}</div>
+  // a ticket for two (after DesignBookmark «Parallax ticket»): tilts toward the finger
+  return `<section class="card blind ticket-blind" data-tilt ${mineB ? `data-a="editBlind" data-id="${b.id}"` : ''}><span class="tk-shine"></span>
+    <div class="tk-top"><span>🎭 ПОБАЧЕННЯ НАОСЛІП</span><span class="tk-pill">ADMIT TWO</span></div>
+    <div class="row mt-s"><div class="grow"><b class="lg">${mineB ? 'Твоє побачення наосліп' : `Сюрприз від ${esc(nameOf(b.by))}`}</b></div>${mineB ? icon('pencil', 18) : ''}</div>
+    <div class="tk-meta"><span><small>ДАТА</small><b>${b.date ? fmtDate(b.date, { weekday: true }) : 'ще не обрана'}</b></span><span><small>ЧАС</small><b>${b.time || '—'}</b></span><span><small>КУДИ</small><b>${open ? '📍' : '🤫 ???'}</b></span></div>
+    <div class="tk-perf"></div>
     ${b.meet ? meetRow(b.meet) : ''}
     ${b.hint ? `<div class="hint">💡 ${esc(b.hint)}</div>` : ''}
     ${b.dress ? `<div class="small mt">👗 Дрес-код: ${esc(b.dress)}</div>` : ''}
@@ -95,7 +99,7 @@ export function placeForm(p, preset = {}) {
       { key: 'time', label: 'Час', type: 'time', value: v.time },
       { key: 'address', label: 'Адреса або посилання', value: v.address, max: 300, placeholder: 'вул. Хрещатик, 1 або https://…' },
       { key: 'note', label: 'Нотатка', type: 'textarea', value: v.note, max: 400 },
-      ...(p ? [{ key: 'visited', label: 'Ми тут уже були', type: 'check', value: p.visited }, { key: 'rating', label: 'Оцінка', type: 'seg', value: p.rating || '', options: [['', '—'], ['1', '1★'], ['2', '2★'], ['3', '3★'], ['4', '4★'], ['5', '5★']] }] : []),
+      ...(p ? [{ key: 'visited', label: 'Ми тут уже були', type: 'check', value: p.visited }, { key: 'rating', label: 'Оцінка', type: 'stars', value: p.rating || '' }] : []),
     ],
     onSubmit: (val) => {
       if (val.mode === 'plan' && !val.date) { toast('Для запланованого обери дату'); return false; }
@@ -135,28 +139,32 @@ on('placeFilter', () => {
 });
 
 on('randomPlace', () => {
-  const pool = S.room.places.filter((p) => !p.visited);
+  const pool = S.room.places.filter((p) => !p.visited).sort(() => Math.random() - 0.5);
   if (!pool.length) {
     toast(S.room.places.length ? 'Ви вже побували скрізь зі списку — додайте нові місця!' : 'Спершу додай кілька місць');
     return;
   }
-  const show = () => {
-    const p = pool[Math.floor(Math.random() * pool.length)];
+  const pick = (p) => {
     const [em, cat] = CATS[p.cat] || CATS.other;
-    openSheet(`<div class="center"><div class="dice-big">🎲</div><div class="muted small">Сьогодні йдемо в…</div>
-      <div class="rnd-em">${em}</div><h2 class="h2">${esc(p.name)}</h2><div class="muted">${cat}${p.address ? ' · ' + esc(p.address) : ''}</div>
+    openSheet(`<div class="center"><div class="rnd-em">${em}</div><div class="muted small">Сьогодні йдемо в…</div><h2 class="h2">${esc(p.name)}</h2><div class="muted">${cat}${p.address ? ' · ' + esc(p.address) : ''}</div>
       ${p.note ? `<p class="small">${esc(p.note)}</p>` : ''}</div>
       <button class="btn block mt" data-plan>${icon('cal', 18)} Іти сьогодні</button>
-      <button class="btn secondary block" data-again>${icon('dice', 18)} Ще раз</button>
       <button class="btn ghost block" data-cancel>Не зараз</button>`, (el) => {
       el.querySelector('[data-cancel]').onclick = closeSheet;
-      el.querySelector('[data-again]').onclick = show;
       el.querySelector('[data-plan]').onclick = async () => {
         if (await act({ type: 'update', col: 'places', id: p.id, patch: { mode: 'plan', date: today() } })) { closeSheet(); toast('Заплановано на сьогодні 💞'); }
       };
     });
   };
-  show();
+  openSheet(`<h3 class="h3 center">Куди хочеться? 🃏</h3><p class="center muted small">Тягни картку праворуч — «хочу», ліворуч — «ні».</p><div class="deck-host"></div>`, (el) => {
+    swipeDeck(el.querySelector('.deck-host'), pool.map((p) => {
+      const [em, cat] = CATS[p.cat] || CATS.other;
+      return { html: `<span class="deck-em">${em}</span><b class="deck-t">${esc(p.name)}</b><span class="muted small">${cat}${p.address ? ' · ' + esc(p.address) : ''}</span>${p.note ? `<span class="small deck-n">${esc(p.note)}</span>` : ''}` };
+    }), {
+      onYes: (i) => pick(pool[i]),
+      onEnd: () => { el.querySelector('.deck').innerHTML = `<div class="deck-empty">${hami('thinking', { size: 80 })}<b>Більше місць немає</b><span class="muted small">Може, додамо нове?</span><button class="btn sm mt-s" data-addnew>${icon('plus', 16)} Додати місце</button></div>`; el.querySelector('[data-addnew]').onclick = () => { closeSheet(); placeForm(); }; },
+    });
+  });
 });
 
 export function blindForm(b) {
@@ -333,3 +341,15 @@ function whereResults(sh, data, where) {
   });
 }
 on('whereGo', () => { const sh = openSheet(''); whereForm(sh); });
+
+// ★ on a visited place's card: rate right there (doesn't open the card)
+document.addEventListener('click', (e) => {
+  const st = e.target.closest('[data-rate] [data-star]');
+  if (!st) return;
+  e.stopPropagation(); e.preventDefault();
+  const box = st.closest('[data-rate]'), id = box.dataset.rate;
+  const cur = box.querySelectorAll('.star.on').length, n = +st.dataset.star, v = n === cur ? 0 : n;
+  box.querySelectorAll('.star').forEach((s, i) => { s.classList.toggle('on', i < v); s.classList.remove('pop'); void s.offsetWidth; if (i < v) s.classList.add('pop'); });
+  navigator.vibrate?.(8);
+  setTimeout(() => act({ type: 'update', col: 'places', id, patch: { rating: v || null } }), 420);
+}, true);

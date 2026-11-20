@@ -60,8 +60,12 @@ function msgHtml(m, i) {
   if (m.role === 'user') return `<div class="wh-msg me ${m.voice ? 'voice' : ''}">${m.voice ? '🎤 ' : ''}${esc(m.text)}</div>`;
   if (m.role === 'err') return `<div class="wh-msg bot err">${esc(m.text)}</div>`;
   const acts = m.actions || [];
-  return `<div class="wh-row">${whisperer(30)}<div class="wh-msg bot">${esc(m.text)}
-    ${acts.length ? `<div class="wh-acts" data-m="${i}">${acts.map((a, j) => { const [e, t, sub] = label(a); return `<label class="wh-act ${m.done ? 'done' : ''}">
+  // a fresh reply «streams» in word by word (DesignBookmark «Streaming reply»), cards follow after the text
+  const words = m.fresh ? String(m.text).split(/(\s+)/) : null;
+  const body = words ? words.map((w, k) => (/^\s+$/.test(w) ? w : `<span class="wh-w" style="--k:${k >> 1}">${esc(w)}</span>`)).join('') : esc(m.text);
+  const after = words ? `style="--after:${Math.min(2400, (words.length >> 1) * 38 + 120)}ms"` : '';
+  return `<div class="wh-row">${whisperer(30)}<div class="wh-msg bot ${m.fresh ? 'fresh' : ''}">${body}
+    ${acts.length ? `<div class="wh-acts" data-m="${i}" ${after}>${acts.map((a, j) => { const [e, t, sub] = label(a); return `<label class="wh-act ${m.done ? 'done' : ''}">
       <input type="checkbox" data-j="${j}" ${m.done ? 'disabled' : ''} ${a.off ? '' : 'checked'}><span class="wh-e">${e}</span><span class="grow"><b>${esc(t)}</b>${sub ? `<br><span class="muted small">${esc(sub)}</span>` : ''}</span></label>`; }).join('')}
       ${m.done ? `<div class="small ok-t mt-s">${icon('check', 14)} ${esc(m.done)}</div>`
         : m.autoAt ? `<div class="row gap mt-s"><button class="btn sm" data-apply="${i}">${icon('check', 16)} Зробити зараз</button><button class="btn sm ghost" data-skip="${i}">Скасувати</button></div><div class="small muted mt-s wh-auto" data-auto="${i}">Виконаю сам за <b>${Math.max(0, Math.ceil((m.autoAt - Date.now()) / 1000))}</b> с…</div>`
@@ -72,11 +76,24 @@ function msgHtml(m, i) {
 function draw(sh, thinking = false) {
   const list = chat();
   const log = sh.querySelector('.wh-log');
-  log.innerHTML = list.length ? list.map(msgHtml).join('') + (thinking ? `<div class="wh-row">${whisperer(30)}<div class="wh-msg bot typing"><i></i><i></i><i></i></div></div>` : '')
+  log.innerHTML = list.length ? list.map(msgHtml).join('') + (thinking ? `<div class="wh-row">${whisperer(30)}<div class="wh-msg bot thinking"><span class="think-t">${THINK[0]}</span></div></div>` : '')
     : `<div class="wh-hello">${whisperer(92)}<p><b>Привіт, я Шептунчик!</b></p><p class="muted small">Напиши або натисни 🎤 і скажи звичайними словами — я додам у календар, покупки чи нагадування. Голосові команди виконую сам за кілька секунд (можна скасувати).</p>
       <div class="wh-chips">${CHIPS.map((c) => `<button class="chip-btn" data-chip="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>`;
   log.scrollTop = log.scrollHeight;
+  list.forEach((m) => { m.fresh = false; });
+  // «Thinking text» (Kokonut UI): the hint changes every 1.6 s with a blur crossfade
+  clearInterval(thinkTimer);
+  if (thinking) {
+    let k = 0;
+    thinkTimer = setInterval(() => {
+      const t = log.querySelector('.think-t'); if (!t) return clearInterval(thinkTimer);
+      t.classList.add('out');
+      setTimeout(() => { k = (k + 1) % THINK.length; t.textContent = THINK[k]; t.classList.remove('out'); }, 220);
+    }, 1600);
+  }
 }
+let thinkTimer = 0;
+const THINK = ['Шептунчик думає…', 'Зазираю в календар…', 'Перевіряю покупки…', 'Рахую дні…', 'Підбираю слова…', 'Шепочу з Хамі…'];
 
 async function send(sh, text, audio = '') {
   text = text.trim();
@@ -92,7 +109,7 @@ async function send(sh, text, audio = '') {
     if (audio) { mine.pending = false; mine.text = data.heard || (res.ok ? '(не розчув)' : 'голосове'); }
     if (!res.ok) list.push({ role: 'err', text: data.error || 'Немає звʼязку з Шептунчиком.' });
     else {
-      const m = { role: 'bot', text: data.reply, actions: data.actions || [] };
+      const m = { role: 'bot', text: data.reply, actions: data.actions || [], fresh: true };
       if (audio && m.actions.length) m.autoAt = Date.now() + 5000; // voice = do it, unless cancelled
       list.push(m);
       if (m.autoAt) autoRun(sh, list.length - 1);
