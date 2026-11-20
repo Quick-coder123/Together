@@ -5,6 +5,7 @@ import { stageOf, kyivHour, MEALS, mealAt, mealsOf, mealsDone, levelInfo, streak
 import { GAMES, pickGame } from '../games.js';
 import { petEvent } from '../petlive.js';
 import { pet3dMount, pet3dPin, pet3dCapable } from '../pet3d.js';
+import { knowCard } from '../know.js';
 import { itemsBetween, stats, firstSteps, KIND } from '../derive.js';
 
 const MOOD_POSE = { great: 'great', ok: 'normal', sad: 'sad' };
@@ -29,6 +30,7 @@ export function meView() {
     <button class="tile warm" data-a="noteSheet"><span class="tile-ic spr">${hami('letter', { size: 52 })}</span><b>Записка</b><span>Надіслати сюрприз</span></button>
     <button class="tile" data-a="evening"><span class="tile-ic">${icon('wand')}</span><b>Вечір</b><span>Кіно + рецепт</span></button>
   </div>
+  ${knowCard(r)}
   ${checkinCard(r, pid, t)}
   ${goalsCard(r)}
   ${datesSection(r, t)}`;
@@ -423,6 +425,15 @@ export function badgeToast() {
 }
 
 /* ----- note / surprise ----- */
+const NOTE_WHEN = [['now', 'Одразу'], ['1h', 'Через годину'], ['eve', 'Сьогодні о 20:00'], ['morn', 'Завтра о 9:00'], ['date', 'Обрати дату…']];
+function openAtOf(when, date) {
+  const now = new Date();
+  if (when === '1h') return Date.now() + 3600000;
+  if (when === 'eve') { const d = new Date(now); d.setHours(20, 0, 0, 0); return d > now ? +d : null; }
+  if (when === 'morn') { const d = new Date(now); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return +d; }
+  if (when === 'date' && date) return +new Date(date + 'T09:00:00');
+  return null;
+}
 function H_noteSheet() {
   const t = today();
   openForm({
@@ -430,25 +441,32 @@ function H_noteSheet() {
     intro: partnerId() ? `${partner().name} побачить її в розділі «Записки».` : 'Партнер побачить її, щойно приєднається.',
     fields: [
       { key: 'text', label: 'Текст', type: 'textarea', rows: 5, max: 1000, placeholder: 'Напиши щось тепле…', required: true },
-      { key: 'when', label: 'Коли відкрити', type: 'select', value: 'now', options: [['now', 'Одразу'], ['1h', 'Через годину'], ['eve', 'Сьогодні о 20:00'], ['morn', 'Завтра о 9:00'], ['date', 'Обрати дату…']] },
+      { key: 'when', label: 'Коли відкрити', type: 'select', value: 'now', options: NOTE_WHEN },
       { key: 'date', label: 'Дата відкриття (якщо «Обрати дату»)', type: 'date', value: addDays(t, 1) },
     ],
     submitText: 'Надіслати 💌',
     onSubmit: async (v) => {
-      const now = new Date();
-      let openAt = null;
-      if (v.when === '1h') openAt = Date.now() + 3600000;
-      if (v.when === 'eve') { const d = new Date(now); d.setHours(20, 0, 0, 0); openAt = d > now ? +d : null; }
-      if (v.when === 'morn') { const d = new Date(now); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); openAt = +d; }
-      if (v.when === 'date' && v.date) openAt = +new Date(v.date + 'T09:00:00');
+      const openAt = openAtOf(v.when, v.date);
       const ok = await act({ type: 'note', text: v.text, openAt });
       if (ok) toast(openAt ? 'Записку запечатано до потрібного часу 🔒' : 'Записку надіслано 💌');
       return ok;
     },
   });
-  const sheet = document.querySelector('.sheet form');
-  if (sheet) sheet.insertAdjacentHTML('beforeend', `<button type="button" class="btn ghost block" data-blind>${icon('mask', 18)} Краще сплануй побачення наосліп</button>`);
+  const form = document.querySelector('.sheet form');
+  if (form) {
+    form.insertAdjacentHTML('afterbegin', `<button type="button" class="btn soft block draw-btn" data-draw>🎨 Намалювати замість тексту</button>`);
+    form.insertAdjacentHTML('beforeend', `<button type="button" class="btn ghost block" data-blind>${icon('mask', 18)} Краще сплануй побачення наосліп</button>`);
+  }
   document.querySelector('[data-blind]')?.addEventListener('click', () => { closeSheet(); go('places'); setTimeout(() => import('./places.js').then((m) => m.blindForm()), 50); });
+  document.querySelector('[data-draw]')?.addEventListener('click', () => {
+    closeSheet();
+    import('../draw.js').then((m) => m.openDrawNote(NOTE_WHEN, async (d) => {
+      const openAt = openAtOf(d.when, d.date || addDays(t, 1));
+      const ok = await act({ type: 'note', image: d.image, text: d.text, openAt });
+      if (ok) toast(openAt ? 'Малюнок запечатано до потрібного часу 🔒' : 'Малюнок надіслано 🎨');
+      return ok;
+    }));
+  });
 }
 on('noteSheet', H_noteSheet);
 

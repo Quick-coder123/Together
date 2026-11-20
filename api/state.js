@@ -55,6 +55,7 @@ export async function POST(request) {
     // Photos are kept in Supabase Storage, not inside the pair's data (keeps it small and fast).
     if (action?.item?.image) action.item.image = await storeImage(action.item.image);
     if (action?.patch?.image) action.patch.image = await storeImage(action.patch.image);
+    if (action?.type === 'note' && action.image) action.image = await storeImage(action.image);
     const result = await updateRoom(code, async (state) => {
       if (!state) return { out: json({ error: 'Пару не знайдено' }, 404) };
       const next = applyAction(state, member, action || {}, today);

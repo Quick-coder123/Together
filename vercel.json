@@ -38,6 +38,9 @@
     },
     "api/tick.js": {
       "maxDuration": 60
+    },
+    "api/know.js": {
+      "maxDuration": 60
     }
   },
   "crons": [

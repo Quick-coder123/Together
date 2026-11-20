@@ -445,13 +445,14 @@ function notesView() {
     const sealedForMe = n.sealed;
     const pendingForThem = mine && n.openAt && n.openAt > Date.now();
     return `<div class="note ${mine ? 'mine' : 'theirs'}">
-      ${sealedForMe ? `<div class="sealed">💌 Запечатана записка<br><span class="small muted">Відкриється ${new Date(n.openAt).toLocaleString('uk-UA', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span></div>` : `<div class="ntext">${esc(n.text)}</div>`}
+      ${sealedForMe ? `<div class="sealed">💌 Запечатана записка<br><span class="small muted">Відкриється ${new Date(n.openAt).toLocaleString('uk-UA', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span></div>` : `${n.image ? `<button class="ndraw" data-a="noteImg" data-src="${esc(n.image)}"><img src="${esc(n.image)}" alt="Малюнок" loading="lazy"></button>` : ''}${n.text ? `<div class="ntext">${esc(n.text)}</div>` : ''}`}
       <div class="meta"><span>${mine ? 'Ти' : esc(nameOf(n.from))} · ${ago(n.ts)}${pendingForThem ? ` · ${icon('lock', 12)} відкриється ${new Date(n.openAt).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
       <span>${sealedForMe ? '' : `<button class="${n.hearts.includes(S.me.id) ? 'liked' : ''}" data-a="heartNote" data-id="${n.id}">${liked ? '❤️ ' + liked : '🤍'}</button>`}
       ${mine ? `<button data-a="delNote" data-id="${n.id}" aria-label="Видалити">${icon('trash', 14)}</button>` : ''}</span></div></div>`;
   }).join('')}</div>` : emptyState('Тут будуть ваші записки одне одному.', '', `<button class="btn" data-a="noteSheet">${icon('send', 18)} Написати</button>`)}`;
 }
 on('heartNote', (el) => act({ type: 'heartNote', id: el.dataset.id }));
+on('noteImg', (el) => openSheet(`<img class="ndraw-full" src="${esc(el.dataset.src)}" alt="Малюнок">`));
 on('delNote', (el) => { if (confirm('Видалити записку?')) act({ type: 'delNote', id: el.dataset.id }); });
 
 /* ================= settings ================= */

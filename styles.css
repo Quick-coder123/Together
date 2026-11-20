@@ -1089,3 +1089,52 @@ main.screen.swipe-end { transition: transform .18s ease-out, opacity .18s ease-o
 /* no visible scrollbars anywhere (scrolling still works) */
 html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
 ::-webkit-scrollbar, *::-webkit-scrollbar { display: none; width: 0 !important; height: 0 !important; background: transparent; -webkit-appearance: none; }
+
+/* ---------- drawing notes ---------- */
+.draw-btn { margin-bottom: 12px; }
+.dr-wrap { border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), 0 6px 18px rgba(0,0,0,.18); margin: 10px 0 12px; touch-action: none; }
+.dr-canvas { display: block; width: 100%; aspect-ratio: 1; touch-action: none; cursor: crosshair; }
+.dr-tools { display: grid; gap: 10px; margin-bottom: 12px; }
+.dr-colors { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.dr-c { width: 28px; height: 28px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(127,127,127,.4); }
+.dr-c.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.dr-row { display: flex; gap: 8px; align-items: center; }
+.dr-s, .dr-b { width: 42px; height: 38px; border-radius: 12px; background: var(--card2); display: grid; place-items: center; font-size: 18px; }
+.dr-s i { display: block; border-radius: 50%; background: currentColor; }
+.dr-s.on, .dr-b.on { background: var(--accent); color: #fff; }
+.dr-row.papers { flex-wrap: wrap; }
+.dr-p { padding: 6px 10px; border-radius: 999px; font-size: 13px; background: var(--c); color: #3a302a; box-shadow: 0 0 0 1px rgba(127,127,127,.35); }
+.dr-p[data-p="#1F1B2E"] { color: #fff; }
+.dr-p.on { box-shadow: 0 0 0 2px var(--accent); font-weight: 700; }
+.ndraw { display: block; width: 100%; border-radius: 14px; overflow: hidden; margin-bottom: 6px; }
+.ndraw img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.ndraw-full { display: block; width: 100%; border-radius: 16px; }
+
+/* ---------- «Хто кого знає краще?» ---------- */
+.know-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+.know-card .know-ic { width: 56px; height: 56px; flex: none; display: grid; place-items: center; }
+.know-card.hot { box-shadow: 0 0 0 2px var(--accent) inset; }
+.know-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.know-dots { display: flex; gap: 5px; }
+.know-dots i { width: 22px; height: 6px; border-radius: 3px; background: var(--card2); }
+.know-dots i.done { background: var(--accent); opacity: .5; }
+.know-dots i.cur { background: var(--accent); }
+.know-who { display: inline-block; padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.know-who.me { background: rgba(47,156,132,.18); color: #2F9C84; }
+.know-who.them { background: rgba(139,92,246,.18); color: #8B5CF6; }
+.know-q { font-size: 21px; line-height: 1.3; margin: 0 0 16px; }
+.know-opts { display: grid; gap: 10px; }
+.know-o { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: var(--card2); text-align: left; font-size: 16px; transition: transform .12s, background .15s; }
+.know-o b { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--card); font-size: 14px; }
+.know-o.on { background: var(--accent); color: #fff; transform: scale(.98); }
+.know-o.on b { background: rgba(255,255,255,.25); }
+.know-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; margin: 12px 0; }
+.know-score b { display: block; font-size: 30px; }
+.know-score span { font-size: 13px; color: var(--muted); }
+.know-res { padding: 12px 0; border-top: 1px solid var(--line); }
+.know-res > b { display: block; margin-bottom: 6px; }
+.know-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; font-size: 14px; padding: 2px 0; }
+.know-line .ok { color: #2F9C84; }
+.know-line .no { color: var(--muted); }
+#dr-date-f[hidden] { display: none !important; }
+.know-top { padding-right: 46px; }

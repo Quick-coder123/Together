@@ -76,7 +76,15 @@ export function messagesFor(action, before, after, mid) {
     case 'note': {
       const n = after.notes[0];
       if (!n || n.from !== mid) return [];
-      return n.openAt ? out(`💌 ${me} залишає тобі запечатану записку. Відкриється пізніше 🔒`, { tag: 'note' }) : out(`💌 ${me} пише тобі: «${n.text.slice(0, 80)}${n.text.length > 80 ? '…' : ''}»`, { tag: 'note', urgent: true });
+      if (n.openAt) return out(`💌 ${me} залишає тобі запечатану записку. Відкриється пізніше 🔒`, { tag: 'note' });
+      if (n.image && !n.text) return out(`🎨 ${me} малює тобі записку — подивись!`, { tag: 'note', urgent: true });
+      return out(`${n.image ? '🎨' : '💌'} ${me} пише тобі: «${n.text.slice(0, 80)}${n.text.length > 80 ? '…' : ''}»`, { tag: 'note', urgent: true });
+    }
+    case 'knowAnswer': {
+      const g = after.know?.cur;
+      if (!g || g.id !== a.id) return [];
+      if (g.done) return out(`🧠 Результати «Хто кого знає краще?» готові: ти ${g.score[pid]}/${g.qs.length}, ${me} ${g.score[mid]}/${g.qs.length}`, { tag: 'know' });
+      return out(`🧠 ${me} вже відповідає у грі «Хто кого знає краще?» — твоя черга!`, { tag: 'know' });
     }
     case 'mood': {
       const prev = before.moods?.[mid], cur = after.moods?.[mid];
